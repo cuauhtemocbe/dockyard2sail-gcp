@@ -79,6 +79,19 @@ Cada una de estas exclusiones es deliberada y debe revisarse cuando cambie el al
 
 ---
 
+## Escritura
+
+Todo lo que se redacta para que otra persona lo lea (specs, planes, issues, README, respuestas largas) sigue `meta-projects/.claude/skills/antislop/SKILL.md`. Este repo no tiene copia de ese skill, así que la regla de carga cognitiva queda aquí:
+
+- **Lo que el lector debe decidir o hacer va primero**, antes del contexto.
+- **Una idea por párrafo o viñeta**, y cada viñeta lleva su razón, no una etiqueta.
+- **Tabla para comparar, prosa para explicar.**
+- **Un nombre por cosa**: se define cada sigla la primera vez y no se alterna con sinónimos.
+- **No se repite lo que otro documento ya dice, se enlaza.** Un plan no copia el spec.
+- **Sin secciones vacías.**
+
+---
+
 ## Memoria (Engram)
 
 Guardar decisiones de arquitectura, bugs resueltos y gotchas no obvios con `mem_save`. Tras una compactación de contexto, llamar `mem_context` antes de continuar.
