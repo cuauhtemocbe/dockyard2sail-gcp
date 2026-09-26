@@ -126,6 +126,24 @@ make apply ENV=dev
 - [ ] Escaneo de la infraestructura con Trivy (misconfiguraciones de IaC) en CI
 - [ ] Guía de arranque y ADRs en `docs/`
 
+## Desarrollo
+
+Aunque el código de Terraform todavía no existe, el tooling y la validación ya están en su lugar. Todo corre dentro de Docker vía `make` (`make help` lista los targets):
+
+```bash
+make validate       # fmt-check + terraform validate + license-check
+make secrets-scan   # gitleaks sobre el diff staged
+make trivy          # vulnerabilidades y misconfiguraciones de IaC (requiere trivy en el PATH)
+make install-hooks  # habilitar los git hooks (una vez por clon)
+```
+
+- **Hooks** (`.githooks/`, habilitados con `make install-hooks`): el `pre-commit` corre `make validate` y un escaneo de secretos con [gitleaks](https://github.com/gitleaks/gitleaks) sobre el diff staged; el `pre-push` corre Trivy y bloquea solo si hay un hallazgo CRITICAL con fix publicado. El `pre-push` requiere el binario [`trivy`](https://github.com/aquasecurity/trivy) en el `PATH` y falla cerrado si no está.
+- **CI** (`.github/workflows/ci.yml`): jobs paralelos `fmt`, `validate`, `license-check` y `trivy-fs`. Las Actions de terceros están pineadas por commit SHA y el workflow declara `permissions: contents: read`.
+- **Sin `lock-check` ni job de build por ahora**: el lockfile de providers (`.terraform.lock.hcl`) aparecerá con el primer módulo, y este template no construye imágenes. Cuando eso cambie, se agregan.
+- **Imágenes de herramientas fijadas por digest** en el `Makefile`. Se actualizan a mano (Dependabot no las ve ahí).
+
+Las reglas para agentes y el checklist previo a un merge están en [`CLAUDE.md`](./CLAUDE.md). El historial de cambios, en [`CHANGELOG.md`](./CHANGELOG.md). Los estándares que sigue este repo viven en `meta-projects/docs/development-standards.md`.
+
 ## Licencia
 
 [MIT](./LICENSE)

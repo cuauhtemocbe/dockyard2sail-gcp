@@ -1,0 +1,42 @@
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfplan
+tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Variables con valores reales (los *.tfvars.example sí se versionan).
+# .terraform.lock.hcl SÍ se versiona: fija las versiones de los providers.
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# entorno y credenciales
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+service-account*.json
+
+# herramientas
+*.log
+.trivy/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Claude Code (config local)
+.claude/
+.mcp.json
+opencode.json
+.codegraph/
