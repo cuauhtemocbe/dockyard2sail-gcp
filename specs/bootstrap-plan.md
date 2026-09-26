@@ -90,7 +90,7 @@ Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
 
 ### Foundation (Build First)
 
-- [ ] **T1**: Esqueleto del módulo
+- [x] **T1**: Esqueleto del módulo
   - **Acceptance**: `terraform/bootstrap/` con versiones fijadas con `~>`, provider con `user_project_override = true` y `billing_project`, variables (con `github_repository_id` opcional) y APIs habilitadas con `disable_on_destroy = false`. Si falta `project_id` o `github_repository`, el `plan` falla con un mensaje claro.
   - **Files**: `terraform/bootstrap/versions.tf`, `variables.tf`, `apis.tf`, `terraform.tfvars.example`
   - **Tests**: `make validate`, `make trivy` y un `plan` sin `project_id` que debe fallar.
