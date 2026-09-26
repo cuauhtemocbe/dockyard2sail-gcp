@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+echo "pre-commit: make validate (fmt-check + validate-tf + license-check)..."
+make validate
+
+echo "pre-commit: gitleaks (staged secrets)..."
+make secrets-scan
