@@ -98,7 +98,7 @@ Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
 
 ### Slice 1: Estado remoto
 
-- [ ] **T2**: Bucket de estado
+- [x] **T2**: Bucket de estado
   - **Acceptance**: bucket con versionado, acceso uniforme, acceso público prohibido, `force_destroy = false`, `prevent_destroy` y retención configurable (90 días por defecto). Output `state_bucket_name`.
   - **Files**: `terraform/bootstrap/state_bucket.tf`, `outputs.tf`
   - **Tests**: `make validate`, `make trivy` y revisar en el `plan` cada atributo de seguridad.
