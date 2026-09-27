@@ -11,6 +11,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 - Módulo `terraform/bootstrap/` (una vez por proyecto): bucket de estado remoto con versionado y retención configurable, pool y provider de Workload Identity Federation para GitHub, SA `plan` de solo lectura (cualquier ref) y SA `apply` de escritura (solo `refs/heads/main`), sin llaves JSON. Incluye su README y los targets `make bootstrap`, `bootstrap-migrate` y `bootstrap-output`.
 - `.gitignore` reforzado contra credenciales: variantes de archivos de entorno, llaves y keystores, credenciales de `gcloud`, `gha-creds-*.json` y planes en JSON.
+- Workflow `verify-apply-sa`: al mergear a `main` (o manualmente desde `main`) comprueba que la ejecución obtiene la SA `apply` por WIF. Lee el provider y la SA de las variables del repositorio `WIF_PROVIDER` y `APPLY_SERVICE_ACCOUNT`.
 - Job `gitleaks` en CI sobre todo el historial (`make secrets-history`).
 - Documentada la protección de `main` que exige la SA `apply` (PR obligatorio, aplicada a administradores, checks requeridos).
 - README con el alcance, la arquitectura prevista y las decisiones de diseño del template.
