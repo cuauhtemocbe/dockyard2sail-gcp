@@ -26,8 +26,8 @@ Cada rol lleva un comentario en el código que explica para qué se necesita.
 
 | SA | Rol | Alcance |
 |----|-----|---------|
-| `plan` | `roles/run.viewer`, `roles/artifactregistry.reader`, `roles/secretmanager.viewer`, `roles/iam.securityReviewer` | Proyecto |
-| `plan` | `roles/storage.objectViewer` | Solo el bucket de estado |
+| `plan` | `roles/run.viewer`, `roles/artifactregistry.reader`, `roles/secretmanager.viewer`, `roles/iam.securityReviewer`, `roles/serviceusage.serviceUsageConsumer`, `roles/iam.workloadIdentityPoolViewer` | Proyecto |
+| `plan` | `roles/storage.objectViewer`, `roles/storage.legacyBucketReader` | Solo el bucket de estado |
 | `apply` | `roles/run.admin`, `roles/artifactregistry.admin`, `roles/secretmanager.admin`, `roles/iam.serviceAccountAdmin`, `roles/iam.serviceAccountUser` | Proyecto |
 | `apply` | `roles/storage.objectAdmin` | Solo el bucket de estado |
 
@@ -72,7 +72,7 @@ Tres decisiones de diseño detrás de esa tabla:
 
 Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
 
-- Los roles de solo lectura de la tabla alcanzan para un `plan` completo del template. Se comprueba en T5 con un `plan` real; si falta un permiso, se agrega el rol y se anota en esta sección.
+- ~~Los cuatro roles de solo lectura iniciales alcanzan para un `plan` completo.~~ **Falso, comprobado en T5 con un workflow real (2026-09-26).** Faltaban tres, todos de solo lectura: `serviceusage.serviceUsageConsumer` (con `user_project_override`, cada llamada exige `serviceusage.services.use`), `iam.workloadIdentityPoolViewer` (`securityReviewer` no incluye `iam.workloadIdentityPools.get`) y `storage.legacyBucketReader` sobre el bucket (`objectViewer` no incluye `storage.buckets.get`). Con ellos el `plan` corre sin errores. Un rol recién asignado tarda alrededor de un minuto en propagarse: un 403 inmediato no siempre es un rol faltante.
 - El provider necesita `user_project_override = true` y `billing_project` cuando se autentica con credenciales de usuario. Se comprueba en T1.
 - El nombre `<project_id>-tfstate` no está tomado en otro proyecto. Se comprueba en T2; el prefijo es configurable por si lo está.
 
@@ -116,8 +116,8 @@ Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
   - **Files**: `terraform/bootstrap/wif.tf`, `outputs.tf`
   - **Tests**: `make validate` y `make trivy`; en el `plan`, la condición del provider contiene el repositorio y no contiene `repository_id` cuando la variable está vacía; un caso con la variable definida.
   - **Effort**: M
-- [ ] **T5**: SA `plan`
-  - **Acceptance**: SA con los roles de lectura de la tabla de permisos y `objectViewer` solo sobre el bucket. Cualquier ref del repositorio autorizado puede usarla. Output con su correo.
+- [x] **T5**: SA `plan`
+  - **Acceptance**: SA con los roles de lectura de la tabla de permisos y `objectViewer` y `legacyBucketReader` solo sobre el bucket. Cualquier ref del repositorio autorizado puede usarla. Output con su correo.
   - **Files**: `terraform/bootstrap/service_accounts.tf` (parte `plan`), `outputs.tf`
   - **Tests**: `make trivy`; en `dev`, un workflow de prueba en una rama descartable, lanzado desde un PR, se autentica y corre `terraform plan -lock=false` sobre bootstrap con backend remoto, sin errores de permisos.
   - **Effort**: M
