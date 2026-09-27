@@ -1,6 +1,6 @@
 ---
 title: Módulo bootstrap
-status: completed
+status: in-progress
 created: 2026-09-25
 updated: 2026-09-27
 issue: "#7"
