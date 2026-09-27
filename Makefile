@@ -1,5 +1,6 @@
-# Latest hashicorp/terraform as of 2026-09-25, pinned by digest for reproducible runs.
-# Bump it deliberately (docker pull hashicorp/terraform:latest, copy the new digest).
+# hashicorp/terraform latest as of 2026-09-25 (Terraform v1.16.4), pinned by digest for reproducible runs.
+# Bump it deliberately (docker pull hashicorp/terraform:latest, copy the new digest and update the version above).
+# Dependabot does not see these images, so they are bumped by hand.
 TERRAFORM_IMAGE ?= hashicorp/terraform@sha256:985cdc6c1d9b0a65b83377f666efd2f740b47f02ac55be1ced3d18f7d3b0e829
 GITLEAKS_IMAGE  ?= zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
 
@@ -20,7 +21,7 @@ TF_ADC = docker run --rm $$([ -t 0 ] && echo -it) -u $$(id -u):$$(id -g) -e HOME
 BOOTSTRAP_DIR = terraform/bootstrap
 
 .DEFAULT_GOAL := help
-.PHONY: help fmt fmt-check validate-tf license-check validate secrets-scan secrets-history trivy install-hooks \
+.PHONY: help fmt fmt-check validate-tf lock-check license-check validate secrets-scan secrets-history trivy install-hooks \
 	bootstrap bootstrap-migrate bootstrap-output _require-project-id _require-adc
 
 fmt: ## Formatear todos los .tf con terraform fmt
@@ -37,10 +38,19 @@ validate-tf: ## terraform init -backend=false + validate en cada directorio con 
 		$(TF_VALIDATE) -chdir=$$d init -backend=false -input=false >/dev/null && $(TF_VALIDATE) -chdir=$$d validate || exit 1; \
 	done
 
+lock-check: ## Verificar que cada módulo tenga .terraform.lock.hcl y que esté sincronizado con sus providers
+	@dirs=$$(find terraform -name '*.tf' -not -path '*/.terraform*/*' -exec dirname {} \; 2>/dev/null | sort -u); \
+	if [ -z "$$dirs" ]; then echo "lock-check: aún no hay archivos .tf, nada que verificar"; exit 0; fi; \
+	for d in $$dirs; do \
+		echo "==> $$d"; \
+		test -f $$d/.terraform.lock.hcl || { echo "Falta $$d/.terraform.lock.hcl"; exit 1; }; \
+		$(TF_VALIDATE) -chdir=$$d init -backend=false -input=false -lockfile=readonly >/dev/null || exit 1; \
+	done
+
 license-check: ## Verificar que exista el archivo LICENSE
 	test -f LICENSE
 
-validate: fmt-check validate-tf license-check ## Suite completa de validación (fmt-check + validate + license-check)
+validate: fmt-check validate-tf lock-check license-check ## Suite completa de validación (fmt-check + validate + lock-check + license-check)
 
 _require-project-id:
 	@test -n "$(PROJECT_ID)" || { echo "Falta PROJECT_ID. Uso: make $(MAKECMDGOALS) PROJECT_ID=<proyecto>"; exit 1; }
