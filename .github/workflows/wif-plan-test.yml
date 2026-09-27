@@ -56,6 +56,10 @@ jobs:
         with:
           workload_identity_provider: projects/156847394497/locations/global/workloadIdentityPools/dockyard2sail-github/providers/github
           service_account: dockyard2sail-apply@dockyard2sail-dev.iam.gserviceaccount.com
+          # Sin token_format la action solo escribe el archivo de credenciales y no llama a GCP:
+          # pedir un access_token fuerza el intercambio de WIF y la suplantación de la SA.
+          token_format: access_token
+          create_credentials_file: false
 
       - name: La autenticación con apply debe haber fallado
         run: |
