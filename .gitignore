@@ -6,6 +6,8 @@ crash.log
 crash.*.log
 *.tfplan
 tfplan
+# Backend generado por `make bootstrap-migrate` (la plantilla backend.tf.example sí se versiona).
+terraform/bootstrap/backend.tf
 override.tf
 override.tf.json
 *_override.tf

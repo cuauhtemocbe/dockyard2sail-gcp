@@ -1,0 +1,9 @@
+# `make bootstrap-migrate` copia este archivo a backend.tf (que no se versiona)
+# y sustituye el marcador del bucket por el project_id. El bucket lo crea este
+# mismo módulo con el nombre "<project_id>-tfstate".
+terraform {
+  backend "gcs" {
+    bucket = "<PROJECT_ID>-tfstate"
+    prefix = "bootstrap"
+  }
+}
