@@ -4,11 +4,12 @@ locals {
   # Roles de solo lectura de la SA `plan`, sobre todo el proyecto. Cubren lo que
   # `terraform plan` necesita leer al refrescar el estado de los módulos del template.
   plan_project_roles = toset([
-    "roles/run.viewer",                     # servicios de Cloud Run
-    "roles/artifactregistry.reader",        # repositorios de Artifact Registry
-    "roles/secretmanager.viewer",           # secretos (metadatos, no sus valores)
-    "roles/iam.securityReviewer",           # service accounts, WIF y políticas de IAM del proyecto
-    "roles/iam.workloadIdentityPoolViewer", # leer el pool y el provider de WIF (securityReviewer no incluye iam.workloadIdentityPools.get)
+    "roles/run.viewer",                        # servicios de Cloud Run
+    "roles/artifactregistry.reader",           # repositorios de Artifact Registry
+    "roles/secretmanager.viewer",              # secretos (metadatos, no sus valores)
+    "roles/iam.securityReviewer",              # service accounts, WIF y políticas de IAM del proyecto
+    "roles/serviceusage.serviceUsageConsumer", # usar el proyecto como quota project (user_project_override) y leer las APIs habilitadas
+    "roles/iam.workloadIdentityPoolViewer",    # leer el pool y el provider de WIF (securityReviewer no incluye iam.workloadIdentityPools.get)
   ])
 }
 
