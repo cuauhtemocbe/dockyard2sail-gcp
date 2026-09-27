@@ -67,6 +67,8 @@ make bootstrap-output
 | `apply_service_account_email` | `service_account` en el workflow que corre al hacer merge a `main` |
 | `state_bucket_name` | `bucket` del backend de cada entorno |
 
+Guarda `workload_identity_provider` y el correo de la SA como variables del repositorio (`gh variable set`), no como secrets: no son secretas, y así el repo no lleva el número de proyecto. [`verify-apply-sa.yml`](../../.github/workflows/verify-apply-sa.yml) las lee como `WIF_PROVIDER` y `APPLY_SERVICE_ACCOUNT`.
+
 Un workflow que se autentica necesita `permissions: id-token: write` (en el job, no en todo el workflow) y `contents: read`. Fija la action por commit SHA, como pide `CLAUDE.md`.
 
 ## Reglas al escribir los workflows
