@@ -124,7 +124,7 @@ Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
 
 ### Slice 3: `apply` solo desde `main`
 
-- [ ] **T6**: SA `apply`
+- [x] **T6**: SA `apply`
   - **Acceptance**: SA con los roles de la tabla de permisos (ni `owner`, ni `editor`, ni `projectIamAdmin`) y un permiso de uso que exige `attribute.repo_ref/<owner>/<repo>@refs/heads/main`. Output con su correo.
   - **Files**: `terraform/bootstrap/service_accounts.tf` (parte `apply`), `outputs.tf`
   - **Tests**: en `dev`, con el workflow de prueba, desde `main` se obtiene `apply` y desde un PR falla con `PERMISSION_DENIED`. Una búsqueda de `google_service_account_key`, `roles/owner`, `roles/editor` y `projectIamAdmin` en el código no devuelve resultados.
@@ -132,7 +132,7 @@ Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
 
 ### Closure
 
-- [ ] **T7**: README del módulo
+- [x] **T7**: README del módulo
   - **Acceptance**: `terraform/bootstrap/README.md` con prerrequisitos (proyecto con facturación, APIs base, credenciales de `gcloud`), ejecución única, migración de estado, cómo usar los outputs en un workflow, la prohibición de `pull_request_target` con WIF y la recomendación de revocar las credenciales al terminar.
   - **Files**: `terraform/bootstrap/README.md`
   - **Tests**: seguir el README desde cero en un proyecto limpio, o compararlo contra lo que se hizo en T3. Los enlaces funcionan.

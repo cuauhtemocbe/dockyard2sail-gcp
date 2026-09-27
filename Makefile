@@ -21,7 +21,7 @@ BOOTSTRAP_DIR = terraform/bootstrap
 
 .DEFAULT_GOAL := help
 .PHONY: help fmt fmt-check validate-tf license-check validate secrets-scan trivy install-hooks \
-	bootstrap bootstrap-migrate _require-project-id _require-adc
+	bootstrap bootstrap-migrate bootstrap-output _require-project-id _require-adc
 
 fmt: ## Formatear todos los .tf con terraform fmt
 	$(TF) fmt -recursive
@@ -55,6 +55,9 @@ bootstrap: _require-project-id _require-adc ## Aplicar terraform/bootstrap con e
 bootstrap-migrate: _require-project-id _require-adc ## Migrar el estado de bootstrap al bucket que creó (PROJECT_ID=...)
 	sed 's/<PROJECT_ID>/$(PROJECT_ID)/' $(BOOTSTRAP_DIR)/backend.tf.example > $(BOOTSTRAP_DIR)/backend.tf
 	$(TF_ADC) -chdir=$(BOOTSTRAP_DIR) init -migrate-state -force-copy -input=false
+
+bootstrap-output: _require-adc ## Mostrar los outputs de bootstrap (requiere haber migrado el estado al bucket)
+	$(TF_ADC) -chdir=$(BOOTSTRAP_DIR) output
 
 secrets-scan: ## Escanear el diff staged con gitleaks (mismo check que el pre-commit)
 	docker run --rm -v "$(CURDIR):/repo" -w /repo $(GITLEAKS_IMAGE) protect --staged --redact -v
