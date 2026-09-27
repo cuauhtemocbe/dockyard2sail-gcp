@@ -8,6 +8,14 @@ updates:
       minor-and-patch:
         update-types: ["minor", "patch"]
 
-  # TODO: add the `terraform` ecosystem (one entry per directory with a
-  # .terraform.lock.hcl) as soon as terraform/bootstrap and terraform/envs/*
-  # exist. Dependabot reports an error for directories that are not there yet.
+  - package-ecosystem: "terraform"
+    directory: "/terraform/bootstrap"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # Add one `terraform` entry per new directory with a .terraform.lock.hcl
+  # (terraform/envs/*) when it lands: Dependabot reports an error for
+  # directories that do not exist yet.

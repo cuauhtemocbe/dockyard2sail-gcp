@@ -24,6 +24,13 @@ jobs:
       - name: Run terraform validate on every directory with .tf files
         run: make validate-tf
 
+  lock-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Verify .terraform.lock.hcl is in sync with the providers
+        run: make lock-check
+
   license-check:
     runs-on: ubuntu-latest
     steps:

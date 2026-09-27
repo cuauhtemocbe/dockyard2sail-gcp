@@ -15,7 +15,8 @@ Todo corre en Docker vía `make` (`make help` los lista). Terraform usa la image
 ```bash
 make fmt-check      # terraform fmt -check -recursive
 make validate-tf    # init -backend=false + validate en cada directorio con .tf
-make validate       # fmt-check + validate-tf + license-check (lo que corre el pre-commit)
+make lock-check     # cada módulo tiene .terraform.lock.hcl y está sincronizado con sus providers
+make validate       # fmt-check + validate-tf + lock-check + license-check (lo que corre el pre-commit)
 make secrets-scan   # gitleaks sobre el diff staged
 make secrets-history # gitleaks sobre todo el historial de git (lo que corre el job gitleaks de CI)
 make trivy          # Trivy fs: vulnerabilidades + misconfiguraciones de IaC (requiere trivy en el PATH)
@@ -34,6 +35,7 @@ make install-hooks  # habilitar .githooks/ (una vez por clon)
 - **`*.tfvars` con valores reales no se versionan**; se versiona un `*.tfvars.example`.
 - **Entornos como carpetas** (`terraform/envs/dev`, `terraform/envs/prod`) sobre módulos compartidos, no workspaces.
 - **`terraform apply` nunca se corre desde CI en un PR**: los PRs solo hacen `plan`; el `apply` ocurre al hacer merge a `main`.
+- **`main` está protegida también para el owner** (`enforce_admins: true`): no se puede pushear directo ni saltarse los checks requeridos. Es deliberado: la SA `apply` se obtiene desde `main`, así que un push directo equivale a `apply` sin revisión. Si hay que saltarla, se desactiva `enforce_admins` de forma temporal y explícita, y se documenta en el commit o el PR.
 - **Actions de terceros pineadas por commit SHA** (con el tag en un comentario) y `permissions:` mínimo explícito por workflow/job.
 
 ---
@@ -61,7 +63,7 @@ make install-hooks  # habilitar .githooks/ (una vez por clon)
 
 - [ ] `make validate` pasa.
 - [ ] `make trivy` sin hallazgos CRITICAL/HIGH (o excepción documentada con fecha de revisión).
-- [ ] El job de CI está en verde (`fmt`, `validate`, `license-check`, `trivy-fs`, `gitleaks`).
+- [ ] El job de CI está en verde (`fmt`, `validate`, `lock-check`, `license-check`, `trivy-fs`, `gitleaks`).
 - [ ] `CHANGELOG.md` actualizado bajo `[Unreleased]`.
 - [ ] El README refleja lo que realmente existe, no solo lo planeado.
 
@@ -73,7 +75,8 @@ Este repo sigue el estándar personal de `meta-projects/docs/development-standar
 
 - **Docker-first**: aplica a las herramientas (Terraform, gitleaks), no a un contenedor de aplicación: aquí no hay imagen de aplicación que construir.
 - **Sin `Dockerfile`, `docker-compose.yml`, linter de Python ni cobertura**: no hay código de aplicación. Se reintroducen solo si aparece uno.
-- **Sin `lock-check` ni job de `build` gateado**: el lockfile de providers ya existe (`terraform/bootstrap/.terraform.lock.hcl`) y falta el `lock-check`; no hay imagen que construir ni escanear.
+- **Sin job de `build` gateado**: no hay imagen de aplicación que construir ni escanear. El `lock-check` sí existe (`make lock-check`).
+- **Imágenes de herramientas del `Makefile` fijadas por digest y actualizadas a mano**: Dependabot no las ve, y moverlas a un `Dockerfile` solo para que las lea añadiría una capa sin otro uso.
 - **SonarQube**: herramienta personal de desarrollo local, no un gate de CI.
 
 Cada una de estas exclusiones es deliberada y debe revisarse cuando cambie el alcance del repo.

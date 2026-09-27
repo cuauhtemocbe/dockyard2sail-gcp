@@ -139,7 +139,7 @@ make apply ENV=dev
 El tooling y la validación cubren `terraform/bootstrap/`. Todo corre dentro de Docker vía `make` (`make help` lista los targets):
 
 ```bash
-make validate       # fmt-check + terraform validate + license-check
+make validate       # fmt-check + terraform validate + lock-check + license-check
 make secrets-scan   # gitleaks sobre el diff staged
 make secrets-history # gitleaks sobre todo el historial de git
 make trivy          # vulnerabilidades y misconfiguraciones de IaC (requiere trivy en el PATH)
@@ -147,9 +147,11 @@ make install-hooks  # habilitar los git hooks (una vez por clon)
 ```
 
 - **Hooks** (`.githooks/`, habilitados con `make install-hooks`): el `pre-commit` corre `make validate` y un escaneo de secretos con [gitleaks](https://github.com/gitleaks/gitleaks) sobre el diff staged; el `pre-push` corre Trivy y bloquea solo si hay un hallazgo CRITICAL con fix publicado. El `pre-push` requiere el binario [`trivy`](https://github.com/aquasecurity/trivy) en el `PATH` y falla cerrado si no está.
-- **CI** (`.github/workflows/ci.yml`): jobs paralelos `fmt`, `validate`, `license-check`, `trivy-fs` y `gitleaks` (este último sobre todo el historial). Las Actions de terceros están pineadas por commit SHA y el workflow declara `permissions: contents: read`.
-- **Sin `lock-check` ni job de build por ahora**: el lockfile de providers (`terraform/bootstrap/.terraform.lock.hcl`) ya existe y falta el job que lo verifique; este template no construye imágenes, así que no hay job de build.
-- **Imágenes de herramientas fijadas por digest** en el `Makefile`. Se actualizan a mano (Dependabot no las ve ahí).
+- **CI** (`.github/workflows/ci.yml`): jobs paralelos `fmt`, `validate`, `lock-check`, `license-check`, `trivy-fs` y `gitleaks` (este último sobre todo el historial). Las Actions de terceros están pineadas por commit SHA y el workflow declara `permissions: contents: read`.
+- **`lock-check`**: falla si un módulo no tiene `.terraform.lock.hcl` o si el lockfile no corresponde a los providers declarados. Este template no construye imágenes, así que no hay job de build.
+- **Dependabot** abre PRs semanales agrupados para las Actions y para los providers de `terraform/bootstrap`.
+- **Imágenes de herramientas fijadas por digest** en el `Makefile` (con su versión de Terraform anotada). Se actualizan a mano: Dependabot no las ve ahí.
+- **`main` protegida también para el owner** (`enforce_admins`): un push directo equivaldría a un `apply` sin revisión. Detalle en [`terraform/bootstrap/README.md`](./terraform/bootstrap/README.md#protección-de-main).
 
 Las reglas para agentes y el checklist previo a un merge están en [`CLAUDE.md`](./CLAUDE.md). El historial de cambios, en [`CHANGELOG.md`](./CHANGELOG.md). Los estándares que sigue este repo viven en `meta-projects/docs/development-standards.md`.
 

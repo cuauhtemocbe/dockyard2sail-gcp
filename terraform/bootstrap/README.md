@@ -82,8 +82,8 @@ Un workflow que se autentica necesita `permissions: id-token: write` (en el job,
 La SA `apply` se obtiene desde `refs/heads/main`, así que quien pueda empujar directo a `main` obtiene escritura sobre el proyecto. La protección de la rama es parte de la seguridad de este módulo. Vive en GitHub, no en Terraform, y hay que configurarla al crear el repositorio (Settings → Branches → `main`):
 
 - **Pull request obligatorio**, con 0 aprobaciones requeridas: con un solo autor, exigir 1 te bloquearía tus propios PRs.
-- **Aplicar también a administradores** (`enforce_admins`), o tu cuenta se salta el resto de reglas.
-- **Checks requeridos, con la rama al día (`strict`):** `fmt`, `validate`, `license-check`, `trivy-fs` y `gitleaks`.
+- **Aplicar también a administradores** (`enforce_admins: true`), o tu cuenta se salta el resto de reglas. Se decidió activarlo, no dejarlo como excepción: con el `apply` ocurriendo al hacer merge a `main`, saltarse los checks tendría más peso que en un repo de código común.
+- **Checks requeridos, con la rama al día (`strict`):** `fmt`, `validate`, `lock-check`, `license-check`, `trivy-fs` y `gitleaks`.
 - **Sin force-push ni borrado de la rama.**
 
 ## Cosas que conviene saber
