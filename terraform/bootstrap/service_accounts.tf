@@ -4,10 +4,11 @@ locals {
   # Roles de solo lectura de la SA `plan`, sobre todo el proyecto. Cubren lo que
   # `terraform plan` necesita leer al refrescar el estado de los módulos del template.
   plan_project_roles = toset([
-    "roles/run.viewer",              # servicios de Cloud Run
-    "roles/artifactregistry.reader", # repositorios de Artifact Registry
-    "roles/secretmanager.viewer",    # secretos (metadatos, no sus valores)
-    "roles/iam.securityReviewer",    # service accounts, WIF y políticas de IAM del proyecto
+    "roles/run.viewer",                     # servicios de Cloud Run
+    "roles/artifactregistry.reader",        # repositorios de Artifact Registry
+    "roles/secretmanager.viewer",           # secretos (metadatos, no sus valores)
+    "roles/iam.securityReviewer",           # service accounts, WIF y políticas de IAM del proyecto
+    "roles/iam.workloadIdentityPoolViewer", # leer el pool y el provider de WIF (securityReviewer no incluye iam.workloadIdentityPools.get)
   ])
 }
 
@@ -33,6 +34,14 @@ resource "google_project_iam_member" "plan" {
 resource "google_storage_bucket_iam_member" "plan_state_reader" {
   bucket = google_storage_bucket.state.name
   role   = "roles/storage.objectViewer"
+  member = google_service_account.plan.member
+}
+
+# Leer los metadatos del bucket (storage.buckets.get): objectViewer no lo incluye y el
+# refresh de google_storage_bucket.state falla sin él. Solo lectura, solo este bucket.
+resource "google_storage_bucket_iam_member" "plan_state_bucket_reader" {
+  bucket = google_storage_bucket.state.name
+  role   = "roles/storage.legacyBucketReader"
   member = google_service_account.plan.member
 }
 
