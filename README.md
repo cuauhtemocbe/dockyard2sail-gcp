@@ -61,10 +61,12 @@ La autenticación no guarda ningún secreto en GitHub: el workflow presenta un t
 
 ## Estructura prevista
 
+Hoy existe solo `terraform/bootstrap/`; el resto es planeado.
+
 ```
 .
 ├── terraform/
-│   ├── bootstrap/          # Se corre una vez: bucket de estado, WIF, service accounts de CI
+│   ├── bootstrap/          # Ya existe. Se corre una vez: bucket de estado, WIF, service accounts de CI
 │   ├── modules/
 │   │   ├── cloud-run-service/
 │   │   ├── artifact-registry/
@@ -95,14 +97,18 @@ Cada decisión con matices se documentará como ADR en `docs/`.
 
 Pensado para caber en el nivel gratuito de Google Cloud en un proyecto de bajo tráfico. Cloud Run incluye un cupo mensual gratuito de solicitudes, y Artifact Registry, Secret Manager y Cloud Storage cobran poco o nada a esta escala. Los límites exactos cambian con el tiempo: consulta [cloud.google.com/free](https://cloud.google.com/free) antes de desplegar. El módulo `budget-alert`, todavía planeado, existirá para avisar si algo se sale del plan.
 
-## Requisitos previos (planeado)
+## Requisitos previos
+
+Para `terraform/bootstrap/` (los prerrequisitos completos están en [su README](terraform/bootstrap/README.md)):
 
 - Una cuenta de Google Cloud con facturación habilitada (el nivel gratuito la exige).
 - Un proyecto de GCP por entorno.
 - Docker y `gcloud` instalados. Terraform corre dentro de Docker vía `make`, no se instala.
 - Un repositorio de GitHub con Actions habilitado.
 
-## Cómo usarlo (planeado)
+## Cómo usarlo
+
+El paso 1 ya funciona. Los pasos 2 y 3 son planeados.
 
 ```bash
 # 1. Crear el estado remoto y la federación de identidad (una sola vez)
@@ -110,11 +116,11 @@ Pensado para caber en el nivel gratuito de Google Cloud en un proyecto de bajo t
 make bootstrap PROJECT_ID=mi-proyecto-dev
 make bootstrap-migrate PROJECT_ID=mi-proyecto-dev
 
-# 2. Planear y aplicar un entorno
+# 2. Planear y aplicar un entorno (planeado)
 make plan  ENV=dev
 make apply ENV=dev
 
-# 3. A partir de aquí, cada merge a main despliega vía GitHub Actions
+# 3. A partir de aquí, cada merge a main despliega vía GitHub Actions (planeado)
 ```
 
 ## Hoja de ruta
@@ -125,7 +131,7 @@ make apply ENV=dev
 - [ ] Workflow de `plan` en PR y `deploy` en `main`
 - [ ] Entornos `dev` y `prod`
 - [ ] Módulo `budget-alert`
-- [ ] Escaneo de la infraestructura con Trivy (misconfiguraciones de IaC) en CI
+- [x] Escaneo de la infraestructura con Trivy (misconfiguraciones de IaC) en CI
 - [ ] Guía de arranque y ADRs en `docs/`
 
 ## Desarrollo

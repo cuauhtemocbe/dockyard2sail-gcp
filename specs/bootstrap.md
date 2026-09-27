@@ -36,35 +36,35 @@ Lo ejecuta una persona con permisos de administrador, desde su computadora, una 
 
 **Bucket de estado**
 
-- [ ] Crea un bucket de Cloud Storage con versionado, acceso uniforme a nivel de bucket y acceso público prohibido. El versionado permite recuperar un estado dañado.
-- [ ] Borra las versiones no vigentes con más de N días (variable, 90 por defecto), para que el bucket no crezca sin límite.
+- [x] Crea un bucket de Cloud Storage con versionado, acceso uniforme a nivel de bucket y acceso público prohibido. El versionado permite recuperar un estado dañado.
+- [x] Borra las versiones no vigentes con más de N días (variable, 90 por defecto), para que el bucket no crezca sin límite.
 
 **Federación de identidad (WIF)**
 
-- [ ] Crea un pool y un provider OIDC para GitHub (emisor `https://token.actions.githubusercontent.com`). El provider solo acepta tokens del repositorio indicado en `github_repository`.
-- [ ] Si se define `github_repository_id` (el ID numérico del repositorio), el provider también lo exige. El nombre de un repositorio borrado puede reutilizarlo otra persona; el ID no. Es opcional y recomendado.
+- [x] Crea un pool y un provider OIDC para GitHub (emisor `https://token.actions.githubusercontent.com`). El provider solo acepta tokens del repositorio indicado en `github_repository`.
+- [x] Si se define `github_repository_id` (el ID numérico del repositorio), el provider también lo exige. El nombre de un repositorio borrado puede reutilizarlo otra persona; el ID no. Es opcional y recomendado.
 
 **Service accounts**
 
-- [ ] SA `plan`: solo lectura sobre el proyecto y sobre el bucket. La puede usar cualquier ref del repositorio autorizado.
-- [ ] SA `apply`: escritura sobre la infraestructura del template y sobre el bucket. Solo se puede usar desde la rama `main` del repositorio autorizado.
+- [x] SA `plan`: solo lectura sobre el proyecto y sobre el bucket. La puede usar cualquier ref del repositorio autorizado.
+- [x] SA `apply`: escritura sobre la infraestructura del template y sobre el bucket. Solo se puede usar desde la rama `main` del repositorio autorizado.
 
 **Entradas, salidas y uso**
 
-- [ ] Habilita las APIs de GCP que necesitan bootstrap y los módulos siguientes (`iam`, `iamcredentials`, `sts`, `cloudresourcemanager`, `serviceusage`, `storage`, `run`, `artifactregistry`, `secretmanager`).
-- [ ] Todas las entradas son variables: `project_id`, `region`, `github_repository`, `github_repository_id`, `state_version_retention_days` y un prefijo de nombres. Se entrega un `terraform.tfvars.example`.
-- [ ] Expone como outputs el nombre del bucket, el nombre completo del provider de WIF y el correo de cada SA.
-- [ ] `make bootstrap PROJECT_ID=...` aplica con estado local y `make bootstrap-migrate PROJECT_ID=...` migra el estado al bucket. El procedimiento completo queda en el README del módulo.
+- [x] Habilita las APIs de GCP que necesitan bootstrap y los módulos siguientes (`iam`, `iamcredentials`, `sts`, `cloudresourcemanager`, `serviceusage`, `storage`, `run`, `artifactregistry`, `secretmanager`).
+- [x] Todas las entradas son variables: `project_id`, `region`, `github_repository`, `github_repository_id`, `state_version_retention_days` y un prefijo de nombres. Se entrega un `terraform.tfvars.example`.
+- [x] Expone como outputs el nombre del bucket, el nombre completo del provider de WIF y el correo de cada SA.
+- [x] `make bootstrap PROJECT_ID=...` aplica con estado local y `make bootstrap-migrate PROJECT_ID=...` migra el estado al bucket. El procedimiento completo queda en el README del módulo.
 
 ### Non-Functional Requirements
 
-- [ ] Seguridad: el código no crea llaves JSON (`google_service_account_key`).
-- [ ] Seguridad: ninguna SA tiene `roles/owner` ni `roles/editor`. Cada rol asignado aparece en el código con un comentario que dice para qué se necesita.
-- [ ] Seguridad: el permiso para usar la SA `apply` exige repositorio y rama `main`. Se verifica leyendo el `plan` y con una prueba desde un PR, que debe fallar.
-- [ ] Calidad: `make validate` y `make trivy` sin hallazgos CRITICAL/HIGH.
-- [ ] Reproducibilidad: providers con restricción `~>` y `.terraform.lock.hcl` versionado.
-- [ ] Idempotencia: un segundo `terraform plan` justo después del `apply` da 0 cambios.
-- [ ] Costo: ningún recurso con costo fijo mensual (sin Cloud KMS, VPC ni IP reservada).
+- [x] Seguridad: el código no crea llaves JSON (`google_service_account_key`).
+- [x] Seguridad: ninguna SA tiene `roles/owner` ni `roles/editor`. Cada rol asignado aparece en el código con un comentario que dice para qué se necesita.
+- [x] Seguridad: el permiso para usar la SA `apply` exige repositorio y rama `main`. Se verifica leyendo el `plan` y con una prueba desde un PR, que debe fallar.
+- [x] Calidad: `make validate` y `make trivy` sin hallazgos CRITICAL/HIGH.
+- [x] Reproducibilidad: providers con restricción `~>` y `.terraform.lock.hcl` versionado.
+- [x] Idempotencia: un segundo `terraform plan` justo después del `apply` da 0 cambios.
+- [x] Costo: ningún recurso con costo fijo mensual (sin Cloud KMS, VPC ni IP reservada).
 
 ## Architecture
 
@@ -162,13 +162,13 @@ Las pruebas de rendimiento no aplican a este módulo.
 
 ## Success Criteria
 
-- [ ] `make validate` y `make trivy` pasan sobre `terraform/bootstrap/` sin hallazgos CRITICAL/HIGH.
-- [ ] `make bootstrap PROJECT_ID=<proyecto-dev>` deja el proyecto listo en una ejecución, sin pasos en la consola.
-- [ ] Después de migrar, el estado está en el bucket y el objeto tiene al menos 2 versiones tras un segundo `apply` con cambios.
-- [ ] Un segundo `terraform plan` después del `apply` da 0 cambios.
-- [ ] Desde un PR de prueba, WIF entrega la SA `plan` y falla al usar la SA `apply`. Desde `main` entrega la SA `apply`.
-- [ ] No existe ninguna llave JSON ni `roles/owner` ni `roles/editor` en el código ni en el IAM resultante.
-- [ ] `.terraform.lock.hcl` está versionado y el CI pasa (`fmt`, `validate`, `license-check`, `trivy-fs`, `gitleaks`).
+- [x] `make validate` y `make trivy` pasan sobre `terraform/bootstrap/` sin hallazgos CRITICAL/HIGH.
+- [x] `make bootstrap PROJECT_ID=<proyecto-dev>` deja el proyecto listo en una ejecución, sin pasos en la consola.
+- [x] Después de migrar, el estado está en el bucket y el objeto tiene al menos 2 versiones tras un segundo `apply` con cambios.
+- [x] Un segundo `terraform plan` después del `apply` da 0 cambios.
+- [ ] Desde un PR de prueba, WIF entrega la SA `plan` y falla al usar la SA `apply`. Desde `main` entrega la SA `apply`. Verificado desde el PR de prueba #8 (2026-09-26); falta comprobar `apply` desde `main`, que llega con el primer workflow de deploy.
+- [x] No existe ninguna llave JSON ni `roles/owner` ni `roles/editor` en el código ni en el IAM resultante.
+- [x] `.terraform.lock.hcl` está versionado y el CI pasa (`fmt`, `validate`, `license-check`, `trivy-fs`, `gitleaks`).
 
 ## Implementation Plan
 

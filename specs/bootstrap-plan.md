@@ -85,7 +85,7 @@ Cada una se comprueba en la tarea indicada.
   - **Hecho (2026-09-26)**: desde el PR de prueba #8 (`refs/pull/8/merge`) la SA `plan` funcionó y la SA `apply` falló con `PERMISSION_DENIED` (`iam.serviceAccounts.getAccessToken`). El PR se cerró sin mergear.
   - **Pendiente**: que desde `main` se obtenga `apply`. Se comprueba con el primer workflow real de `apply`, que es el siguiente ítem de la hoja de ruta.
   - **Ojo**: `google-github-actions/auth` sin `token_format` solo escribe el archivo de credenciales y no llama a GCP, así que no sirve para probar una denegación. La prueba usó `token_format: access_token`.
-- [ ] **M5**: lockfile versionado, CHANGELOG y README actualizados, CI verde y checklist de "Antes de mergear" completo (T7, T8).
+- [x] **M5**: lockfile versionado, CHANGELOG y README actualizados, CI verde y checklist de "Antes de mergear" completo (T7, T8). Verificado el 2026-09-27: CI en verde en el PR #9 y en `main` (`c9d50be`), `make validate` y `make trivy` sin hallazgos.
 
 ## Tasks
 
