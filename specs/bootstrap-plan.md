@@ -79,8 +79,8 @@ Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
 ## Milestones
 
 - [ ] **M1**: `make validate` y `make trivy` pasan sobre `terraform/bootstrap/` (T1, T2, T4, T5, T6).
-- [ ] **M2**: `make bootstrap` crea todo en el proyecto `dev` y un segundo `plan` da 0 cambios (T3).
-- [ ] **M3**: `make bootstrap-migrate` deja el estado en el bucket con versiones recuperables (T3).
+- [x] **M2**: `make bootstrap` crea todo en el proyecto `dev` y un segundo `plan` da 0 cambios (T3).
+- [x] **M3**: `make bootstrap-migrate` deja el estado en el bucket con versiones recuperables (T3).
 - [ ] **M4**: desde un PR de prueba se obtiene la SA `plan` y falla al usar la SA `apply`; desde `main` se obtiene `apply` (T5, T6).
 - [ ] **M5**: lockfile versionado, CHANGELOG y README actualizados, CI verde y checklist de "Antes de mergear" completo (T7, T8).
 
@@ -103,7 +103,7 @@ Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
   - **Files**: `terraform/bootstrap/state_bucket.tf`, `outputs.tf`
   - **Tests**: `make validate`, `make trivy` y revisar en el `plan` cada atributo de seguridad.
   - **Effort**: S
-- [ ] **T3**: Ejecución con credenciales y migración de estado
+- [x] **T3**: Ejecución con credenciales y migración de estado
   - **Acceptance**: una variante de `TF` en el `Makefile` monta las credenciales de `gcloud` en solo lectura. `make bootstrap PROJECT_ID=...` corre `init` y `apply` con estado local. `make bootstrap-migrate PROJECT_ID=...` genera `backend.tf` desde `backend.tf.example` y corre `init -migrate-state`. `backend.tf` y el estado local están en `.gitignore`.
   - **Files**: `Makefile`, `.gitignore`, `terraform/bootstrap/backend.tf.example`
   - **Tests**: en `dev`, `apply` y un segundo `plan` con 0 cambios; `migrate` y `terraform state list` con backend remoto; el objeto del estado tiene al menos 2 versiones después de un segundo cambio. `make validate` sigue pasando sin `backend.tf`.
