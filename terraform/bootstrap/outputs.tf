@@ -12,3 +12,8 @@ output "plan_service_account_email" {
   description = "Correo de la SA de solo lectura, para el parámetro service_account de google-github-actions/auth en los PRs."
   value       = google_service_account.plan.email
 }
+
+output "apply_service_account_email" {
+  description = "Correo de la SA de escritura, para el parámetro service_account de google-github-actions/auth al hacer merge a main."
+  value       = google_service_account.apply.email
+}
