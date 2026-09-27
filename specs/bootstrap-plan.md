@@ -70,11 +70,11 @@ Tres decisiones de diseño detrás de esa tabla:
 
 ### Assumptions
 
-Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
+Cada una se comprueba en la tarea indicada.
 
 - ~~Los cuatro roles de solo lectura iniciales alcanzan para un `plan` completo.~~ **Falso, comprobado en T5 con un workflow real (2026-09-26).** Faltaban tres, todos de solo lectura: `serviceusage.serviceUsageConsumer` (con `user_project_override`, cada llamada exige `serviceusage.services.use`), `iam.workloadIdentityPoolViewer` (`securityReviewer` no incluye `iam.workloadIdentityPools.get`) y `storage.legacyBucketReader` sobre el bucket (`objectViewer` no incluye `storage.buckets.get`). Con ellos el `plan` corre sin errores. Un rol recién asignado tarda alrededor de un minuto en propagarse: un 403 inmediato no siempre es un rol faltante.
 - El provider necesita `user_project_override = true` y `billing_project` cuando se autentica con credenciales de usuario. Se comprueba en T1.
-- El nombre `<project_id>-tfstate` no está tomado en otro proyecto. Se comprueba en T2; el prefijo es configurable por si lo está.
+- El nombre `<project_id>-tfstate` no está tomado en otro proyecto. Se comprobó en T2: el bucket se creó. `name_prefix` no cambia el nombre del bucket, así que si estuviera tomado habría que modificar el módulo.
 
 ## Milestones
 
@@ -85,7 +85,7 @@ Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
   - **Hecho (2026-09-26)**: desde el PR de prueba #8 (`refs/pull/8/merge`) la SA `plan` funcionó y la SA `apply` falló con `PERMISSION_DENIED` (`iam.serviceAccounts.getAccessToken`). El PR se cerró sin mergear.
   - **Pendiente**: que desde `main` se obtenga `apply`. Se comprueba con el primer workflow real de `apply`, que es el siguiente ítem de la hoja de ruta.
   - **Ojo**: `google-github-actions/auth` sin `token_format` solo escribe el archivo de credenciales y no llama a GCP, así que no sirve para probar una denegación. La prueba usó `token_format: access_token`.
-- [ ] **M5**: lockfile versionado, CHANGELOG y README actualizados, CI verde y checklist de "Antes de mergear" completo (T7, T8).
+- [x] **M5**: lockfile versionado, CHANGELOG y README actualizados, CI verde y checklist de "Antes de mergear" completo (T7, T8). Verificado el 2026-09-27: CI en verde en el PR #9 y en `main` (`c9d50be`), `make validate` y `make trivy` sin hallazgos.
 
 ## Tasks
 
@@ -141,7 +141,7 @@ Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
   - **Tests**: seguir el README desde cero en un proyecto limpio, o compararlo contra lo que se hizo en T3. Los enlaces funcionan.
   - **Effort**: S
 - [x] **T8**: Lockfile, changelog y README raíz
-  - **Acceptance**: `.terraform.lock.hcl` versionado; entrada en `CHANGELOG.md` bajo `[Unreleased]`; ítem de la hoja de ruta marcado y secciones "planeado" ajustadas solo en lo que ya existe; `status: completed` en el spec.
+  - **Acceptance**: `.terraform.lock.hcl` versionado; entrada en `CHANGELOG.md` bajo `[Unreleased]`; ítem de la hoja de ruta marcado y secciones "planeado" ajustadas solo en lo que ya existe; `status: completed` en el spec (revertido a `in-progress` hasta cerrar M4).
   - **Files**: `terraform/bootstrap/.terraform.lock.hcl`, `CHANGELOG.md`, `README.md`, `specs/bootstrap.md`
   - **Tests**: `make validate`, `make trivy` y el CI (`fmt`, `validate`, `license-check`, `trivy-fs`) en verde.
   - **Effort**: XS

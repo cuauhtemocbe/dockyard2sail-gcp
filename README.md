@@ -1,6 +1,6 @@
 # dockyard2sail-gcp
 
-![Estado](https://img.shields.io/badge/estado-en%20dise%C3%B1o-orange)
+![Estado](https://img.shields.io/badge/estado-en%20construcci%C3%B3n-orange)
 ![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform&logoColor=white)
 ![Google Cloud](https://img.shields.io/badge/Google%20Cloud-Cloud%20Run-4285F4?logo=googlecloud&logoColor=white)
 ![Licencia](https://img.shields.io/badge/license-MIT-green)
@@ -15,7 +15,7 @@ Desplegar un contenedor en GCP por primera vez suele terminar en clics en la con
 
 ## Alcance
 
-**Incluye (planeado):**
+**Incluye** (estado remoto, Workload Identity Federation y las service accounts de CI ya existen en `terraform/bootstrap/`; lo demás es planeado):
 
 - **Cloud Run** como destino del contenedor, con servicio, revisiones y tráfico definidos en Terraform.
 - **Artifact Registry** para las imágenes, con política de limpieza de versiones antiguas.
@@ -61,10 +61,12 @@ La autenticación no guarda ningún secreto en GitHub: el workflow presenta un t
 
 ## Estructura prevista
 
+Hoy existe solo `terraform/bootstrap/`; el resto es planeado.
+
 ```
 .
 ├── terraform/
-│   ├── bootstrap/          # Se corre una vez: bucket de estado, WIF, service accounts de CI
+│   ├── bootstrap/          # Ya existe. Se corre una vez: bucket de estado, WIF, service accounts de CI
 │   ├── modules/
 │   │   ├── cloud-run-service/
 │   │   ├── artifact-registry/
@@ -93,16 +95,20 @@ Cada decisión con matices se documentará como ADR en `docs/`.
 
 ## Costos
 
-Pensado para caber en el nivel gratuito de Google Cloud en un proyecto de bajo tráfico. Cloud Run incluye un cupo mensual gratuito de solicitudes, y Artifact Registry, Secret Manager y Cloud Storage cobran poco o nada a esta escala. Los límites exactos cambian con el tiempo: consulta [cloud.google.com/free](https://cloud.google.com/free) antes de desplegar. El módulo `budget-alert` existe justamente para avisar si algo se sale del plan.
+Pensado para caber en el nivel gratuito de Google Cloud en un proyecto de bajo tráfico. Cloud Run incluye un cupo mensual gratuito de solicitudes, y Artifact Registry, Secret Manager y Cloud Storage cobran poco o nada a esta escala. Los límites exactos cambian con el tiempo: consulta [cloud.google.com/free](https://cloud.google.com/free) antes de desplegar. El módulo `budget-alert`, todavía planeado, existirá para avisar si algo se sale del plan.
 
-## Requisitos previos (planeado)
+## Requisitos previos
+
+Para `terraform/bootstrap/` (los prerrequisitos completos están en [su README](terraform/bootstrap/README.md)):
 
 - Una cuenta de Google Cloud con facturación habilitada (el nivel gratuito la exige).
 - Un proyecto de GCP por entorno.
-- Terraform 1.x y `gcloud` instalados, o el contenedor de desarrollo que traerá el repo.
+- Docker y `gcloud` instalados. Terraform corre dentro de Docker vía `make`, no se instala.
 - Un repositorio de GitHub con Actions habilitado.
 
-## Cómo usarlo (planeado)
+## Cómo usarlo
+
+El paso 1 ya funciona. Los pasos 2 y 3 son planeados.
 
 ```bash
 # 1. Crear el estado remoto y la federación de identidad (una sola vez)
@@ -110,11 +116,11 @@ Pensado para caber en el nivel gratuito de Google Cloud en un proyecto de bajo t
 make bootstrap PROJECT_ID=mi-proyecto-dev
 make bootstrap-migrate PROJECT_ID=mi-proyecto-dev
 
-# 2. Planear y aplicar un entorno
+# 2. Planear y aplicar un entorno (planeado)
 make plan  ENV=dev
 make apply ENV=dev
 
-# 3. A partir de aquí, cada merge a main despliega vía GitHub Actions
+# 3. A partir de aquí, cada merge a main despliega vía GitHub Actions (planeado)
 ```
 
 ## Hoja de ruta
@@ -125,23 +131,24 @@ make apply ENV=dev
 - [ ] Workflow de `plan` en PR y `deploy` en `main`
 - [ ] Entornos `dev` y `prod`
 - [ ] Módulo `budget-alert`
-- [ ] Escaneo de la infraestructura con Trivy (misconfiguraciones de IaC) en CI
+- [x] Escaneo de la infraestructura con Trivy (misconfiguraciones de IaC) en CI
 - [ ] Guía de arranque y ADRs en `docs/`
 
 ## Desarrollo
 
-Aunque el código de Terraform todavía no existe, el tooling y la validación ya están en su lugar. Todo corre dentro de Docker vía `make` (`make help` lista los targets):
+El tooling y la validación cubren `terraform/bootstrap/`. Todo corre dentro de Docker vía `make` (`make help` lista los targets):
 
 ```bash
 make validate       # fmt-check + terraform validate + license-check
 make secrets-scan   # gitleaks sobre el diff staged
+make secrets-history # gitleaks sobre todo el historial de git
 make trivy          # vulnerabilidades y misconfiguraciones de IaC (requiere trivy en el PATH)
 make install-hooks  # habilitar los git hooks (una vez por clon)
 ```
 
 - **Hooks** (`.githooks/`, habilitados con `make install-hooks`): el `pre-commit` corre `make validate` y un escaneo de secretos con [gitleaks](https://github.com/gitleaks/gitleaks) sobre el diff staged; el `pre-push` corre Trivy y bloquea solo si hay un hallazgo CRITICAL con fix publicado. El `pre-push` requiere el binario [`trivy`](https://github.com/aquasecurity/trivy) en el `PATH` y falla cerrado si no está.
-- **CI** (`.github/workflows/ci.yml`): jobs paralelos `fmt`, `validate`, `license-check` y `trivy-fs`. Las Actions de terceros están pineadas por commit SHA y el workflow declara `permissions: contents: read`.
-- **Sin `lock-check` ni job de build por ahora**: el lockfile de providers (`.terraform.lock.hcl`) aparecerá con el primer módulo, y este template no construye imágenes. Cuando eso cambie, se agregan.
+- **CI** (`.github/workflows/ci.yml`): jobs paralelos `fmt`, `validate`, `license-check`, `trivy-fs` y `gitleaks` (este último sobre todo el historial). Las Actions de terceros están pineadas por commit SHA y el workflow declara `permissions: contents: read`.
+- **Sin `lock-check` ni job de build por ahora**: el lockfile de providers (`terraform/bootstrap/.terraform.lock.hcl`) ya existe y falta el job que lo verifique; este template no construye imágenes, así que no hay job de build.
 - **Imágenes de herramientas fijadas por digest** en el `Makefile`. Se actualizan a mano (Dependabot no las ve ahí).
 
 Las reglas para agentes y el checklist previo a un merge están en [`CLAUDE.md`](./CLAUDE.md). El historial de cambios, en [`CHANGELOG.md`](./CHANGELOG.md). Los estándares que sigue este repo viven en `meta-projects/docs/development-standards.md`.

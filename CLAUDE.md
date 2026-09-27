@@ -17,6 +17,7 @@ make fmt-check      # terraform fmt -check -recursive
 make validate-tf    # init -backend=false + validate en cada directorio con .tf
 make validate       # fmt-check + validate-tf + license-check (lo que corre el pre-commit)
 make secrets-scan   # gitleaks sobre el diff staged
+make secrets-history # gitleaks sobre todo el historial de git (lo que corre el job gitleaks de CI)
 make trivy          # Trivy fs: vulnerabilidades + misconfiguraciones de IaC (requiere trivy en el PATH)
 make install-hooks  # habilitar .githooks/ (una vez por clon)
 ```
@@ -60,7 +61,7 @@ make install-hooks  # habilitar .githooks/ (una vez por clon)
 
 - [ ] `make validate` pasa.
 - [ ] `make trivy` sin hallazgos CRITICAL/HIGH (o excepción documentada con fecha de revisión).
-- [ ] El job de CI está en verde (`fmt`, `validate`, `license-check`, `trivy-fs`).
+- [ ] El job de CI está en verde (`fmt`, `validate`, `license-check`, `trivy-fs`, `gitleaks`).
 - [ ] `CHANGELOG.md` actualizado bajo `[Unreleased]`.
 - [ ] El README refleja lo que realmente existe, no solo lo planeado.
 
@@ -72,7 +73,7 @@ Este repo sigue el estándar personal de `meta-projects/docs/development-standar
 
 - **Docker-first**: aplica a las herramientas (Terraform, gitleaks), no a un contenedor de aplicación: aquí no hay imagen de aplicación que construir.
 - **Sin `Dockerfile`, `docker-compose.yml`, linter de Python ni cobertura**: no hay código de aplicación. Se reintroducen solo si aparece uno.
-- **Sin `lock-check` ni job de `build` gateado**: el lockfile de providers aparecerá con el primer módulo, y no hay imagen que construir ni escanear.
+- **Sin `lock-check` ni job de `build` gateado**: el lockfile de providers ya existe (`terraform/bootstrap/.terraform.lock.hcl`) y falta el `lock-check`; no hay imagen que construir ni escanear.
 - **SonarQube**: herramienta personal de desarrollo local, no un gate de CI.
 
 Cada una de estas exclusiones es deliberada y debe revisarse cuando cambie el alcance del repo.

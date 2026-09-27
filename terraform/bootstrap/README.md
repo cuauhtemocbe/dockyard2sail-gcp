@@ -18,7 +18,7 @@ Los roles de cada SA y por qué se eligieron están en [`specs/bootstrap-plan.md
 
 1. **Un proyecto de GCP con facturación habilitada**, y tu usuario con permisos de administrador (`roles/owner`) sobre él.
 2. **`gcloud` y Docker** instalados. Terraform corre dentro de Docker vía `make`.
-3. **Dos APIs activas a mano.** Terraform las necesita para habilitar las demás, así que no pueden salir del propio módulo:
+3. **Dos APIs activas manualmente.** Terraform las necesita para habilitar las demás, así que no pueden salir del propio módulo:
    ```bash
    gcloud services enable cloudresourcemanager.googleapis.com serviceusage.googleapis.com --project <project_id>
    ```
@@ -67,13 +67,22 @@ make bootstrap-output
 | `apply_service_account_email` | `service_account` en el workflow que corre al hacer merge a `main` |
 | `state_bucket_name` | `bucket` del backend de cada entorno |
 
-Un workflow que se autentica necesita `permissions: id-token: write` (en el job, no en todo el workflow) y `contents: read`. Pinea la action por commit SHA, como pide `CLAUDE.md`.
+Un workflow que se autentica necesita `permissions: id-token: write` (en el job, no en todo el workflow) y `contents: read`. Fija la action por commit SHA, como pide `CLAUDE.md`.
 
 ## Reglas al escribir los workflows
 
 - **Nunca uses `pull_request_target` con WIF.** Ese evento corre en el contexto de la rama base: su `ref` sería `refs/heads/main` y obtendría la SA `apply` con código de un PR ajeno.
 - **Los PRs solo hacen `plan`**, con la SA `plan` y `-lock=false`. La SA `plan` no puede escribir en el bucket, así que no puede crear el bloqueo del estado.
 - **`apply` solo corre al hacer merge a `main`.**
+
+## Protección de `main`
+
+La SA `apply` se obtiene desde `refs/heads/main`, así que quien pueda empujar directo a `main` obtiene escritura sobre el proyecto. La protección de la rama es parte de la seguridad de este módulo. Vive en GitHub, no en Terraform, y hay que configurarla al crear el repositorio (Settings → Branches → `main`):
+
+- **Pull request obligatorio**, con 0 aprobaciones requeridas: con un solo autor, exigir 1 te bloquearía tus propios PRs.
+- **Aplicar también a administradores** (`enforce_admins`), o tu cuenta se salta el resto de reglas.
+- **Checks requeridos, con la rama al día (`strict`):** `fmt`, `validate`, `license-check`, `trivy-fs` y `gitleaks`.
+- **Sin force-push ni borrado de la rama.**
 
 ## Cosas que conviene saber
 
