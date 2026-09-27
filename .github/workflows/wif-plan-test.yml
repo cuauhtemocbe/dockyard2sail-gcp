@@ -1,0 +1,42 @@
+# PRUEBA DESCARTABLE de T5: comprueba que WIF entrega la SA `plan` y que sus permisos
+# alcanzan para un `terraform plan` completo. Vive solo en la rama test/wif-plan y se borra
+# al terminar; no llega a main.
+name: WIF plan test
+
+on:
+  push:
+    branches: ["test/wif-plan"]
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # pedir el token OIDC que WIF intercambia por la SA
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: projects/156847394497/locations/global/workloadIdentityPools/dockyard2sail-github/providers/github
+          service_account: dockyard2sail-plan@dockyard2sail-dev.iam.gserviceaccount.com
+
+      - name: terraform plan -lock=false (bootstrap, estado remoto)
+        run: |
+          image=$(sed -n 's/^TERRAFORM_IMAGE ?= //p' Makefile)
+          sed 's/<PROJECT_ID>/dockyard2sail-dev/' terraform/bootstrap/backend.tf.example > terraform/bootstrap/backend.tf
+          creds="/workspace/${GOOGLE_APPLICATION_CREDENTIALS#"$GITHUB_WORKSPACE"/}"
+          tf() {
+            docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e GOOGLE_APPLICATION_CREDENTIALS="$creds" \
+              -v "$GITHUB_WORKSPACE:/workspace" -w /workspace "$image" -chdir=terraform/bootstrap "$@"
+          }
+          tf init -input=false
+          tf plan -input=false -lock=false \
+            -var project_id=dockyard2sail-dev \
+            -var region=us-central1 \
+            -var github_repository="${{ github.repository }}" \
+            -var github_repository_id="${{ github.repository_id }}"
