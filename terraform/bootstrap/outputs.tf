@@ -7,3 +7,8 @@ output "workload_identity_provider" {
   description = "Nombre completo del provider de WIF, para el parámetro workload_identity_provider de google-github-actions/auth."
   value       = google_iam_workload_identity_pool_provider.github.name
 }
+
+output "plan_service_account_email" {
+  description = "Correo de la SA de solo lectura, para el parámetro service_account de google-github-actions/auth en los PRs."
+  value       = google_service_account.plan.email
+}
