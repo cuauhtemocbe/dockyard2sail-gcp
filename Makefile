@@ -7,9 +7,10 @@ GITLEAKS_IMAGE  ?= zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd
 TF = docker run --rm -u $$(id -u):$$(id -g) -e HOME=/tmp -v "$(CURDIR):/workspace" -w /workspace $(TERRAFORM_IMAGE)
 
 # Variante para bootstrap: monta solo el archivo de credenciales de gcloud (application default
-# credentials), en solo lectura, y lo expone a Terraform. -it porque apply pide confirmación.
+# credentials), en solo lectura, y lo expone a Terraform. -it solo si hay terminal: apply pide
+# confirmación y necesita una; init -migrate-state -force-copy no.
 GCLOUD_ADC ?= $(HOME)/.config/gcloud/application_default_credentials.json
-TF_ADC = docker run --rm -it -u $$(id -u):$$(id -g) -e HOME=/tmp \
+TF_ADC = docker run --rm $$([ -t 0 ] && echo -it) -u $$(id -u):$$(id -g) -e HOME=/tmp \
 	-e GOOGLE_APPLICATION_CREDENTIALS=/gcloud/adc.json -v "$(GCLOUD_ADC):/gcloud/adc.json:ro" \
 	-v "$(CURDIR):/workspace" -w /workspace $(TERRAFORM_IMAGE)
 BOOTSTRAP_DIR = terraform/bootstrap
