@@ -1,6 +1,6 @@
 ---
 title: Módulo bootstrap
-status: in-progress
+status: completed
 created: 2026-09-25
 updated: 2026-09-27
 issue: "#7"
@@ -166,7 +166,7 @@ Las pruebas de rendimiento no aplican a este módulo.
 - [x] `make bootstrap PROJECT_ID=<proyecto-dev>` deja el proyecto listo en una ejecución, sin pasos en la consola.
 - [x] Después de migrar, el estado está en el bucket y el objeto tiene al menos 2 versiones tras un segundo `apply` con cambios.
 - [x] Un segundo `terraform plan` después del `apply` da 0 cambios.
-- [ ] Desde un PR de prueba, WIF entrega la SA `plan` y falla al usar la SA `apply`. Desde `main` entrega la SA `apply`. Verificado desde el PR de prueba #8 (2026-09-26); falta comprobar `apply` desde `main`, que llega con el primer workflow de deploy.
+- [x] Desde un PR de prueba, WIF entrega la SA `plan` y falla al usar la SA `apply`. Desde `main` entrega la SA `apply`. Verificado el 2026-09-26 desde el PR de prueba #8 y el 2026-09-27 desde `main` con el workflow `verify-apply-sa` (ejecución 36293992691).
 - [x] No existe ninguna llave JSON ni `roles/owner` ni `roles/editor` en el código ni en el IAM resultante.
 - [x] `.terraform.lock.hcl` está versionado y el CI pasa (`fmt`, `validate`, `license-check`, `trivy-fs`, `gitleaks`).
 
