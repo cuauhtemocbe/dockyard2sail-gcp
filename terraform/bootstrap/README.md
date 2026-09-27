@@ -18,7 +18,7 @@ Los roles de cada SA y por qué se eligieron están en [`specs/bootstrap-plan.md
 
 1. **Un proyecto de GCP con facturación habilitada**, y tu usuario con permisos de administrador (`roles/owner`) sobre él.
 2. **`gcloud` y Docker** instalados. Terraform corre dentro de Docker vía `make`.
-3. **Dos APIs activas a mano.** Terraform las necesita para habilitar las demás, así que no pueden salir del propio módulo:
+3. **Dos APIs activas manualmente.** Terraform las necesita para habilitar las demás, así que no pueden salir del propio módulo:
    ```bash
    gcloud services enable cloudresourcemanager.googleapis.com serviceusage.googleapis.com --project <project_id>
    ```
@@ -67,7 +67,7 @@ make bootstrap-output
 | `apply_service_account_email` | `service_account` en el workflow que corre al hacer merge a `main` |
 | `state_bucket_name` | `bucket` del backend de cada entorno |
 
-Un workflow que se autentica necesita `permissions: id-token: write` (en el job, no en todo el workflow) y `contents: read`. Pinea la action por commit SHA, como pide `CLAUDE.md`.
+Un workflow que se autentica necesita `permissions: id-token: write` (en el job, no en todo el workflow) y `contents: read`. Fija la action por commit SHA, como pide `CLAUDE.md`.
 
 ## Reglas al escribir los workflows
 

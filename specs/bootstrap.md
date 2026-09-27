@@ -14,7 +14,7 @@ Crear con Terraform, una sola vez por proyecto de GCP, lo que hace falta antes d
 
 ## Context
 
-`terraform/bootstrap/` es el primer ítem de la hoja de ruta del README. Hoy el repo no tiene código de Terraform. Los demás módulos dependen de este:
+`terraform/bootstrap/` es el primer ítem de la hoja de ruta del README. Antes de este módulo el repo no tenía código de Terraform. Los demás módulos dependen de este:
 
 - `terraform/envs/dev` y `envs/prod` declaran su `backend "gcs"` sobre el bucket que crea bootstrap.
 - Los workflows de GitHub Actions usan el provider de WIF y las SA para correr `plan` en cada PR y `apply` en cada merge a `main`.
@@ -168,7 +168,7 @@ Las pruebas de rendimiento no aplican a este módulo.
 - [ ] Un segundo `terraform plan` después del `apply` da 0 cambios.
 - [ ] Desde un PR de prueba, WIF entrega la SA `plan` y falla al usar la SA `apply`. Desde `main` entrega la SA `apply`.
 - [ ] No existe ninguna llave JSON ni `roles/owner` ni `roles/editor` en el código ni en el IAM resultante.
-- [ ] `.terraform.lock.hcl` está versionado y el CI pasa (`fmt`, `validate`, `license-check`, `trivy-fs`).
+- [ ] `.terraform.lock.hcl` está versionado y el CI pasa (`fmt`, `validate`, `license-check`, `trivy-fs`, `gitleaks`).
 
 ## Implementation Plan
 
