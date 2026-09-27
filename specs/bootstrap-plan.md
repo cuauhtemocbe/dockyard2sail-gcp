@@ -82,6 +82,9 @@ Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
 - [x] **M2**: `make bootstrap` crea todo en el proyecto `dev` y un segundo `plan` da 0 cambios (T3).
 - [x] **M3**: `make bootstrap-migrate` deja el estado en el bucket con versiones recuperables (T3).
 - [ ] **M4**: desde un PR de prueba se obtiene la SA `plan` y falla al usar la SA `apply`; desde `main` se obtiene `apply` (T5, T6).
+  - **Hecho (2026-09-26)**: desde el PR de prueba #8 (`refs/pull/8/merge`) la SA `plan` funcionó y la SA `apply` falló con `PERMISSION_DENIED` (`iam.serviceAccounts.getAccessToken`). El PR se cerró sin mergear.
+  - **Pendiente**: que desde `main` se obtenga `apply`. Se comprueba con el primer workflow real de `apply`, que es el siguiente ítem de la hoja de ruta.
+  - **Ojo**: `google-github-actions/auth` sin `token_format` solo escribe el archivo de credenciales y no llama a GCP, así que no sirve para probar una denegación. La prueba usó `token_format: access_token`.
 - [ ] **M5**: lockfile versionado, CHANGELOG y README actualizados, CI verde y checklist de "Antes de mergear" completo (T7, T8).
 
 ## Tasks
