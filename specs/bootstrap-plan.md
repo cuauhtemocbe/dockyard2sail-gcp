@@ -111,7 +111,7 @@ Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
 
 ### Slice 2: `plan` desde un PR
 
-- [ ] **T4**: Workload Identity Federation
+- [x] **T4**: Workload Identity Federation
   - **Acceptance**: pool y provider OIDC que solo aceptan el repositorio configurado (y su ID si `github_repository_id` está definido). Atributos mapeados: `repository`, `ref`, `repo_ref` y `repository_id`. Output `workload_identity_provider` con el nombre completo.
   - **Files**: `terraform/bootstrap/wif.tf`, `outputs.tf`
   - **Tests**: `make validate` y `make trivy`; en el `plan`, la condición del provider contiene el repositorio y no contiene `repository_id` cuando la variable está vacía; un caso con la variable definida.
