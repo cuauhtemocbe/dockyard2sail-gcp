@@ -1,0 +1,16 @@
+# Copia este archivo a terraform.tfvars y completa los valores.
+# terraform.tfvars no se versiona.
+
+project_id = "mi-proyecto-dev"
+region     = "us-central1"
+
+# Repositorio que puede usar las service accounts de CI.
+github_repository = "mi-usuario/mi-repositorio"
+
+# Recomendado: ID numérico del repositorio. Se obtiene con
+#   gh api repos/mi-usuario/mi-repositorio --jq .id
+# github_repository_id = "123456789"
+
+# Opcionales (valores por defecto):
+# state_version_retention_days = 90
+# name_prefix                  = "dockyard2sail"

@@ -43,3 +43,12 @@ jobs:
           scanners: vuln,misconfig,secret
           severity: CRITICAL,HIGH
           exit-code: "1"
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # gitleaks recorre todo el historial, no solo el último commit
+      - name: Gitleaks over the full git history
+        run: make secrets-history

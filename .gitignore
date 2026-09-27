@@ -1,11 +1,14 @@
 # terraform
 .terraform/
+.terraform-validate/
 *.tfstate
 *.tfstate.*
 crash.log
 crash.*.log
 *.tfplan
 tfplan
+# Backend generado por `make bootstrap-migrate` (la plantilla backend.tf.example sí se versiona).
+terraform/bootstrap/backend.tf
 override.tf
 override.tf.json
 *_override.tf
@@ -19,12 +22,32 @@ override.tf.json
 
 # entorno y credenciales
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 *.pem
 *.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+*.secret
+*.secrets
+secrets/
 credentials.json
+*-credentials.json
 service-account*.json
+*-sa-key*.json
+application_default_credentials.json
+# Lo escribe google-github-actions/auth en el workspace del runner.
+gha-creds-*.json
+# Configuración de Terraform CLI: puede llevar tokens de registro.
+.terraformrc
+terraform.rc
+# Planes en JSON: incluyen valores sensibles en claro.
+*.tfplan.json
+plan.json
 
 # herramientas
 *.log

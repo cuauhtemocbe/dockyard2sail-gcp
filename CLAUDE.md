@@ -4,7 +4,7 @@ Guía de instrucciones para Claude Code al trabajar en este repositorio.
 
 Stack: Terraform sobre Google Cloud (Cloud Run, Artifact Registry, Secret Manager, Workload Identity Federation), GitHub Actions. Ver `README.md` para el alcance y la arquitectura prevista, y `Makefile` para los comandos.
 
-**Estado:** en diseño. Hoy el repo solo tiene documentación, tooling y CI; el código de Terraform (`terraform/`) todavía no existe. No describir como hecho lo que solo está planeado.
+**Estado:** en construcción. Hoy el repo tiene documentación, tooling, CI y un solo módulo de Terraform, `terraform/bootstrap/`. Los demás módulos, los entornos y los workflows de despliegue todavía no existen. No describir como hecho lo que solo está planeado.
 
 ---
 
@@ -76,6 +76,19 @@ Este repo sigue el estándar personal de `meta-projects/docs/development-standar
 - **SonarQube**: herramienta personal de desarrollo local, no un gate de CI.
 
 Cada una de estas exclusiones es deliberada y debe revisarse cuando cambie el alcance del repo.
+
+---
+
+## Escritura
+
+Todo lo que se redacta para que otra persona lo lea (specs, planes, issues, README, respuestas largas) sigue `meta-projects/.claude/skills/antislop/SKILL.md`. Este repo no tiene copia de ese skill, así que la regla de carga cognitiva queda aquí:
+
+- **Lo que el lector debe decidir o hacer va primero**, antes del contexto.
+- **Una idea por párrafo o viñeta**, y cada viñeta lleva su razón, no una etiqueta.
+- **Tabla para comparar, prosa para explicar.**
+- **Un nombre por cosa**: se define cada sigla la primera vez y no se alterna con sinónimos.
+- **No se repite lo que otro documento ya dice, se enlaza.** Un plan no copia el spec.
+- **Sin secciones vacías.**
 
 ---
 

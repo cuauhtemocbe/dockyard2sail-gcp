@@ -6,8 +6,22 @@ GITLEAKS_IMAGE  ?= zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd
 # Terraform corre dentro de Docker con el uid del host, para no dejar archivos root en el repo.
 TF = docker run --rm -u $$(id -u):$$(id -g) -e HOME=/tmp -v "$(CURDIR):/workspace" -w /workspace $(TERRAFORM_IMAGE)
 
+# Variante para validate-tf: usa su propio directorio de datos (.terraform-validate) para que un
+# backend ya inicializado en .terraform/ (tras bootstrap-migrate) no exija credenciales al validar.
+TF_VALIDATE = docker run --rm -u $$(id -u):$$(id -g) -e HOME=/tmp -e TF_DATA_DIR=/workspace/$$d/.terraform-validate -v "$(CURDIR):/workspace" -w /workspace $(TERRAFORM_IMAGE)
+
+# Variante para bootstrap: monta solo el archivo de credenciales de gcloud (application default
+# credentials), en solo lectura, y lo expone a Terraform. -it solo si hay terminal: apply pide
+# confirmación y necesita una; init -migrate-state -force-copy no.
+GCLOUD_ADC ?= $(HOME)/.config/gcloud/application_default_credentials.json
+TF_ADC = docker run --rm $$([ -t 0 ] && echo -it) -u $$(id -u):$$(id -g) -e HOME=/tmp \
+	-e GOOGLE_APPLICATION_CREDENTIALS=/gcloud/adc.json -v "$(GCLOUD_ADC):/gcloud/adc.json:ro" \
+	-v "$(CURDIR):/workspace" -w /workspace $(TERRAFORM_IMAGE)
+BOOTSTRAP_DIR = terraform/bootstrap
+
 .DEFAULT_GOAL := help
-.PHONY: help fmt fmt-check validate-tf license-check validate secrets-scan trivy install-hooks
+.PHONY: help fmt fmt-check validate-tf license-check validate secrets-scan secrets-history trivy install-hooks \
+	bootstrap bootstrap-migrate bootstrap-output _require-project-id _require-adc
 
 fmt: ## Formatear todos los .tf con terraform fmt
 	$(TF) fmt -recursive
@@ -20,13 +34,33 @@ validate-tf: ## terraform init -backend=false + validate en cada directorio con 
 	if [ -z "$$dirs" ]; then echo "validate-tf: aún no hay archivos .tf, nada que validar"; exit 0; fi; \
 	for d in $$dirs; do \
 		echo "==> $$d"; \
-		$(TF) -chdir=$$d init -backend=false -input=false >/dev/null && $(TF) -chdir=$$d validate || exit 1; \
+		$(TF_VALIDATE) -chdir=$$d init -backend=false -input=false >/dev/null && $(TF_VALIDATE) -chdir=$$d validate || exit 1; \
 	done
 
 license-check: ## Verificar que exista el archivo LICENSE
 	test -f LICENSE
 
 validate: fmt-check validate-tf license-check ## Suite completa de validación (fmt-check + validate + license-check)
+
+_require-project-id:
+	@test -n "$(PROJECT_ID)" || { echo "Falta PROJECT_ID. Uso: make $(MAKECMDGOALS) PROJECT_ID=<proyecto>"; exit 1; }
+
+_require-adc:
+	@test -f "$(GCLOUD_ADC)" || { echo "No existe $(GCLOUD_ADC). Corre: gcloud auth application-default login"; exit 1; }
+
+bootstrap: _require-project-id _require-adc ## Aplicar terraform/bootstrap con estado local (PROJECT_ID=...; el resto de variables va en terraform.tfvars)
+	$(TF_ADC) -chdir=$(BOOTSTRAP_DIR) init -input=false
+	$(TF_ADC) -chdir=$(BOOTSTRAP_DIR) apply -var project_id=$(PROJECT_ID)
+
+bootstrap-migrate: _require-project-id _require-adc ## Migrar el estado de bootstrap al bucket que creó (PROJECT_ID=...)
+	sed 's/<PROJECT_ID>/$(PROJECT_ID)/' $(BOOTSTRAP_DIR)/backend.tf.example > $(BOOTSTRAP_DIR)/backend.tf
+	$(TF_ADC) -chdir=$(BOOTSTRAP_DIR) init -migrate-state -force-copy -input=false
+
+bootstrap-output: _require-adc ## Mostrar los outputs de bootstrap (requiere haber migrado el estado al bucket)
+	$(TF_ADC) -chdir=$(BOOTSTRAP_DIR) output
+
+secrets-history: ## Escanear todo el historial de git con gitleaks (lo que corre el job de CI)
+	docker run --rm -v "$(CURDIR):/repo" -w /repo $(GITLEAKS_IMAGE) detect --redact -v
 
 secrets-scan: ## Escanear el diff staged con gitleaks (mismo check que el pre-commit)
 	docker run --rm -v "$(CURDIR):/repo" -w /repo $(GITLEAKS_IMAGE) protect --staged --redact -v
