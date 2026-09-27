@@ -6,6 +6,10 @@ GITLEAKS_IMAGE  ?= zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd
 # Terraform corre dentro de Docker con el uid del host, para no dejar archivos root en el repo.
 TF = docker run --rm -u $$(id -u):$$(id -g) -e HOME=/tmp -v "$(CURDIR):/workspace" -w /workspace $(TERRAFORM_IMAGE)
 
+# Variante para validate-tf: usa su propio directorio de datos (.terraform-validate) para que un
+# backend ya inicializado en .terraform/ (tras bootstrap-migrate) no exija credenciales al validar.
+TF_VALIDATE = docker run --rm -u $$(id -u):$$(id -g) -e HOME=/tmp -e TF_DATA_DIR=/workspace/$$d/.terraform-validate -v "$(CURDIR):/workspace" -w /workspace $(TERRAFORM_IMAGE)
+
 # Variante para bootstrap: monta solo el archivo de credenciales de gcloud (application default
 # credentials), en solo lectura, y lo expone a Terraform. -it solo si hay terminal: apply pide
 # confirmación y necesita una; init -migrate-state -force-copy no.
@@ -30,7 +34,7 @@ validate-tf: ## terraform init -backend=false + validate en cada directorio con 
 	if [ -z "$$dirs" ]; then echo "validate-tf: aún no hay archivos .tf, nada que validar"; exit 0; fi; \
 	for d in $$dirs; do \
 		echo "==> $$d"; \
-		$(TF) -chdir=$$d init -backend=false -input=false >/dev/null && $(TF) -chdir=$$d validate || exit 1; \
+		$(TF_VALIDATE) -chdir=$$d init -backend=false -input=false >/dev/null && $(TF_VALIDATE) -chdir=$$d validate || exit 1; \
 	done
 
 license-check: ## Verificar que exista el archivo LICENSE
