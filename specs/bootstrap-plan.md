@@ -81,9 +81,9 @@ Cada una se comprueba en la tarea indicada.
 - [x] **M1**: `make validate` y `make trivy` pasan sobre `terraform/bootstrap/` (T1, T2, T4, T5, T6).
 - [x] **M2**: `make bootstrap` crea todo en el proyecto `dev` y un segundo `plan` da 0 cambios (T3).
 - [x] **M3**: `make bootstrap-migrate` deja el estado en el bucket con versiones recuperables (T3).
-- [ ] **M4**: desde un PR de prueba se obtiene la SA `plan` y falla al usar la SA `apply`; desde `main` se obtiene `apply` (T5, T6).
+- [x] **M4**: desde un PR de prueba se obtiene la SA `plan` y falla al usar la SA `apply`; desde `main` se obtiene `apply` (T5, T6).
   - **Hecho (2026-09-26)**: desde el PR de prueba #8 (`refs/pull/8/merge`) la SA `plan` funcionó y la SA `apply` falló con `PERMISSION_DENIED` (`iam.serviceAccounts.getAccessToken`). El PR se cerró sin mergear.
-  - **Pendiente**: que desde `main` se obtenga `apply`. Se comprueba con el primer workflow real de `apply`, que es el siguiente ítem de la hoja de ruta.
+  - **Hecho (2026-09-27)**: el workflow `verify-apply-sa` corrió sobre `main` (ejecución 36293992691) y el token obtenido era de `dockyard2sail-apply@`.
   - **Ojo**: `google-github-actions/auth` sin `token_format` solo escribe el archivo de credenciales y no llama a GCP, así que no sirve para probar una denegación. La prueba usó `token_format: access_token`.
 - [x] **M5**: lockfile versionado, CHANGELOG y README actualizados, CI verde y checklist de "Antes de mergear" completo (T7, T8). Verificado el 2026-09-27: CI en verde en el PR #9 y en `main` (`c9d50be`), `make validate` y `make trivy` sin hallazgos.
 
@@ -141,7 +141,7 @@ Cada una se comprueba en la tarea indicada.
   - **Tests**: seguir el README desde cero en un proyecto limpio, o compararlo contra lo que se hizo en T3. Los enlaces funcionan.
   - **Effort**: S
 - [x] **T8**: Lockfile, changelog y README raíz
-  - **Acceptance**: `.terraform.lock.hcl` versionado; entrada en `CHANGELOG.md` bajo `[Unreleased]`; ítem de la hoja de ruta marcado y secciones "planeado" ajustadas solo en lo que ya existe; `status: completed` en el spec (revertido a `in-progress` hasta cerrar M4).
+  - **Acceptance**: `.terraform.lock.hcl` versionado; entrada en `CHANGELOG.md` bajo `[Unreleased]`; ítem de la hoja de ruta marcado y secciones "planeado" ajustadas solo en lo que ya existe; `status: completed` en el spec (estuvo en `in-progress` hasta cerrar M4).
   - **Files**: `terraform/bootstrap/.terraform.lock.hcl`, `CHANGELOG.md`, `README.md`, `specs/bootstrap.md`
   - **Tests**: `make validate`, `make trivy` y el CI (`fmt`, `validate`, `license-check`, `trivy-fs`) en verde.
   - **Effort**: XS

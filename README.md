@@ -125,7 +125,7 @@ make apply ENV=dev
 
 ## Hoja de ruta
 
-- [x] Módulo `bootstrap` (estado remoto + Workload Identity Federation). Falta comprobar el uso de la SA `apply` desde `main`, que llega con el workflow de `deploy`.
+- [x] Módulo `bootstrap` (estado remoto + Workload Identity Federation).
 - [ ] Módulo `cloud-run-service` con el ejemplo de `dockyard2sail-py`
 - [ ] Módulos `artifact-registry` y `secrets`
 - [ ] Workflow de `plan` en PR y `deploy` en `main`
