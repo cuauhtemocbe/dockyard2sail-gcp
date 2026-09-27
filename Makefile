@@ -20,7 +20,7 @@ TF_ADC = docker run --rm $$([ -t 0 ] && echo -it) -u $$(id -u):$$(id -g) -e HOME
 BOOTSTRAP_DIR = terraform/bootstrap
 
 .DEFAULT_GOAL := help
-.PHONY: help fmt fmt-check validate-tf license-check validate secrets-scan trivy install-hooks \
+.PHONY: help fmt fmt-check validate-tf license-check validate secrets-scan secrets-history trivy install-hooks \
 	bootstrap bootstrap-migrate bootstrap-output _require-project-id _require-adc
 
 fmt: ## Formatear todos los .tf con terraform fmt
@@ -58,6 +58,9 @@ bootstrap-migrate: _require-project-id _require-adc ## Migrar el estado de boots
 
 bootstrap-output: _require-adc ## Mostrar los outputs de bootstrap (requiere haber migrado el estado al bucket)
 	$(TF_ADC) -chdir=$(BOOTSTRAP_DIR) output
+
+secrets-history: ## Escanear todo el historial de git con gitleaks (lo que corre el job de CI)
+	docker run --rm -v "$(CURDIR):/repo" -w /repo $(GITLEAKS_IMAGE) detect --redact -v
 
 secrets-scan: ## Escanear el diff staged con gitleaks (mismo check que el pre-commit)
 	docker run --rm -v "$(CURDIR):/repo" -w /repo $(GITLEAKS_IMAGE) protect --staged --redact -v
