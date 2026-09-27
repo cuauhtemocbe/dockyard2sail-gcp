@@ -75,6 +75,15 @@ Un workflow que se autentica necesita `permissions: id-token: write` (en el job,
 - **Los PRs solo hacen `plan`**, con la SA `plan` y `-lock=false`. La SA `plan` no puede escribir en el bucket, así que no puede crear el bloqueo del estado.
 - **`apply` solo corre al hacer merge a `main`.**
 
+## Protección de `main`
+
+La SA `apply` se obtiene desde `refs/heads/main`, así que quien pueda empujar directo a `main` obtiene escritura sobre el proyecto. La protección de la rama es parte de la seguridad de este módulo. Vive en GitHub, no en Terraform, y hay que configurarla al crear el repositorio (Settings → Branches → `main`):
+
+- **Pull request obligatorio**, con 0 aprobaciones requeridas: con un solo autor, exigir 1 te bloquearía tus propios PRs.
+- **Aplicar también a administradores** (`enforce_admins`), o tu cuenta se salta el resto de reglas.
+- **Checks requeridos, con la rama al día (`strict`):** `fmt`, `validate`, `license-check`, `trivy-fs` y `gitleaks`.
+- **Sin force-push ni borrado de la rama.**
+
 ## Cosas que conviene saber
 
 - **Un rol recién asignado tarda cerca de un minuto en propagarse.** Un `403` inmediato después de un `apply` no siempre es un rol faltante: espera y reintenta.
