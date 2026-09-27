@@ -4,7 +4,7 @@ Guía de instrucciones para Claude Code al trabajar en este repositorio.
 
 Stack: Terraform sobre Google Cloud (Cloud Run, Artifact Registry, Secret Manager, Workload Identity Federation), GitHub Actions. Ver `README.md` para el alcance y la arquitectura prevista, y `Makefile` para los comandos.
 
-**Estado:** en diseño. Hoy el repo solo tiene documentación, tooling y CI; el código de Terraform (`terraform/`) todavía no existe. No describir como hecho lo que solo está planeado.
+**Estado:** en construcción. Hoy el repo tiene documentación, tooling, CI y un solo módulo de Terraform, `terraform/bootstrap/`. Los demás módulos, los entornos y los workflows de despliegue todavía no existen. No describir como hecho lo que solo está planeado.
 
 ---
 

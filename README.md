@@ -7,7 +7,7 @@
 
 Template de infraestructura como código para desplegar una API en **Google Cloud Run** con Terraform, sin llaves de servicio y con CI/CD desde GitHub Actions. Es el hermano de infraestructura de [`dockyard2sail-py`](https://github.com/cuauhtemocbe/dockyard2sail-py) y [`dockyard2sail-ts`](https://github.com/cuauhtemocbe/dockyard2sail-ts): esos dos resuelven "cómo arranco el código", este resuelve "cómo lo llevo a producción en GCP".
 
-> **Estado: en diseño.** Este README describe el alcance y las decisiones previstas. Aún no hay código de Terraform ni workflows; las secciones marcadas como *planeado* se irán convirtiendo en realidad y este documento se actualizará con ellas.
+> **Estado: en construcción.** Existe el módulo [`terraform/bootstrap/`](terraform/bootstrap/README.md) (estado remoto, Workload Identity Federation y service accounts de CI), verificado en un proyecto real. El resto sigue en diseño: no hay más módulos, entornos ni workflows de despliegue. Las secciones marcadas como *planeado* se irán convirtiendo en realidad y este documento se actualizará con ellas.
 
 ## Problema
 
@@ -106,7 +106,9 @@ Pensado para caber en el nivel gratuito de Google Cloud en un proyecto de bajo t
 
 ```bash
 # 1. Crear el estado remoto y la federación de identidad (una sola vez)
+#    Procedimiento completo: terraform/bootstrap/README.md
 make bootstrap PROJECT_ID=mi-proyecto-dev
+make bootstrap-migrate PROJECT_ID=mi-proyecto-dev
 
 # 2. Planear y aplicar un entorno
 make plan  ENV=dev
@@ -117,7 +119,7 @@ make apply ENV=dev
 
 ## Hoja de ruta
 
-- [ ] Módulo `bootstrap` (estado remoto + Workload Identity Federation)
+- [x] Módulo `bootstrap` (estado remoto + Workload Identity Federation). Falta comprobar el uso de la SA `apply` desde `main`, que llega con el workflow de `deploy`.
 - [ ] Módulo `cloud-run-service` con el ejemplo de `dockyard2sail-py`
 - [ ] Módulos `artifact-registry` y `secrets`
 - [ ] Workflow de `plan` en PR y `deploy` en `main`

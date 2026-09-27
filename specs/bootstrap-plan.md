@@ -78,7 +78,7 @@ Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
 
 ## Milestones
 
-- [ ] **M1**: `make validate` y `make trivy` pasan sobre `terraform/bootstrap/` (T1, T2, T4, T5, T6).
+- [x] **M1**: `make validate` y `make trivy` pasan sobre `terraform/bootstrap/` (T1, T2, T4, T5, T6).
 - [x] **M2**: `make bootstrap` crea todo en el proyecto `dev` y un segundo `plan` da 0 cambios (T3).
 - [x] **M3**: `make bootstrap-migrate` deja el estado en el bucket con versiones recuperables (T3).
 - [ ] **M4**: desde un PR de prueba se obtiene la SA `plan` y falla al usar la SA `apply`; desde `main` se obtiene `apply` (T5, T6).
@@ -140,7 +140,7 @@ Ninguna está verificada todavía; cada una se comprueba en la tarea indicada.
   - **Files**: `terraform/bootstrap/README.md`
   - **Tests**: seguir el README desde cero en un proyecto limpio, o compararlo contra lo que se hizo en T3. Los enlaces funcionan.
   - **Effort**: S
-- [ ] **T8**: Lockfile, changelog y README raíz
+- [x] **T8**: Lockfile, changelog y README raíz
   - **Acceptance**: `.terraform.lock.hcl` versionado; entrada en `CHANGELOG.md` bajo `[Unreleased]`; ítem de la hoja de ruta marcado y secciones "planeado" ajustadas solo en lo que ya existe; `status: completed` en el spec.
   - **Files**: `terraform/bootstrap/.terraform.lock.hcl`, `CHANGELOG.md`, `README.md`, `specs/bootstrap.md`
   - **Tests**: `make validate`, `make trivy` y el CI (`fmt`, `validate`, `license-check`, `trivy-fs`) en verde.
