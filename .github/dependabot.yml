@@ -16,6 +16,14 @@ updates:
       minor-and-patch:
         update-types: ["minor", "patch"]
 
-  # Add one `terraform` entry per new directory with a .terraform.lock.hcl
-  # (terraform/envs/*) when it lands: Dependabot reports an error for
-  # directories that do not exist yet.
+  - package-ecosystem: "terraform"
+    directory: "/terraform/envs/dev"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # Add one `terraform` entry per new root directory with a .terraform.lock.hcl
+  # (terraform/envs/prod) when it lands: Dependabot reports an error for
+  # directories that do not exist yet. Modules under terraform/modules/ have no lockfile.

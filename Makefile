@@ -19,10 +19,11 @@ TF_ADC = docker run --rm $$([ -t 0 ] && echo -it) -u $$(id -u):$$(id -g) -e HOME
 	-e GOOGLE_APPLICATION_CREDENTIALS=/gcloud/adc.json -v "$(GCLOUD_ADC):/gcloud/adc.json:ro" \
 	-v "$(CURDIR):/workspace" -w /workspace $(TERRAFORM_IMAGE)
 BOOTSTRAP_DIR = terraform/bootstrap
+ENV_DIR = terraform/envs/$(ENV)
 
 .DEFAULT_GOAL := help
 .PHONY: help fmt fmt-check validate-tf lock-check license-check validate secrets-scan secrets-history trivy install-hooks \
-	bootstrap bootstrap-migrate bootstrap-output _require-project-id _require-adc
+	bootstrap bootstrap-migrate bootstrap-output plan apply _require-project-id _require-adc _require-env
 
 fmt: ## Formatear todos los .tf con terraform fmt
 	$(TF) fmt -recursive
@@ -38,8 +39,8 @@ validate-tf: ## terraform init -backend=false + validate en cada directorio con 
 		$(TF_VALIDATE) -chdir=$$d init -backend=false -input=false >/dev/null && $(TF_VALIDATE) -chdir=$$d validate || exit 1; \
 	done
 
-lock-check: ## Verificar que cada módulo tenga .terraform.lock.hcl y que esté sincronizado con sus providers
-	@dirs=$$(find terraform -name '*.tf' -not -path '*/.terraform*/*' -exec dirname {} \; 2>/dev/null | sort -u); \
+lock-check: ## Verificar que cada directorio raíz (bootstrap y envs/*) tenga .terraform.lock.hcl sincronizado con sus providers
+	@dirs=$$(find terraform -name '*.tf' -not -path '*/.terraform*/*' -not -path 'terraform/modules/*' -exec dirname {} \; 2>/dev/null | sort -u); \
 	if [ -z "$$dirs" ]; then echo "lock-check: aún no hay archivos .tf, nada que verificar"; exit 0; fi; \
 	for d in $$dirs; do \
 		echo "==> $$d"; \
@@ -58,6 +59,10 @@ _require-project-id:
 _require-adc:
 	@test -f "$(GCLOUD_ADC)" || { echo "No existe $(GCLOUD_ADC). Corre: gcloud auth application-default login"; exit 1; }
 
+_require-env:
+	@test -n "$(ENV)" || { echo "Falta ENV. Uso: make $(MAKECMDGOALS) ENV=<entorno> PROJECT_ID=<proyecto>"; exit 1; }
+	@test -d "$(ENV_DIR)" || { echo "No existe $(ENV_DIR)"; exit 1; }
+
 bootstrap: _require-project-id _require-adc ## Aplicar terraform/bootstrap con estado local (PROJECT_ID=...; el resto de variables va en terraform.tfvars)
 	$(TF_ADC) -chdir=$(BOOTSTRAP_DIR) init -input=false
 	$(TF_ADC) -chdir=$(BOOTSTRAP_DIR) apply -var project_id=$(PROJECT_ID)
@@ -68,6 +73,14 @@ bootstrap-migrate: _require-project-id _require-adc ## Migrar el estado de boots
 
 bootstrap-output: _require-adc ## Mostrar los outputs de bootstrap (requiere haber migrado el estado al bucket)
 	$(TF_ADC) -chdir=$(BOOTSTRAP_DIR) output
+
+plan: _require-env _require-project-id _require-adc ## terraform plan de un entorno (ENV=dev PROJECT_ID=...); el bucket de estado es <PROJECT_ID>-tfstate
+	$(TF_ADC) -chdir=$(ENV_DIR) init -input=false -backend-config="bucket=$(PROJECT_ID)-tfstate"
+	$(TF_ADC) -chdir=$(ENV_DIR) plan -input=false -var project_id=$(PROJECT_ID)
+
+apply: _require-env _require-project-id _require-adc ## terraform apply de un entorno (ENV=dev PROJECT_ID=...); pide confirmación
+	$(TF_ADC) -chdir=$(ENV_DIR) init -input=false -backend-config="bucket=$(PROJECT_ID)-tfstate"
+	$(TF_ADC) -chdir=$(ENV_DIR) apply -var project_id=$(PROJECT_ID)
 
 secrets-history: ## Escanear todo el historial de git con gitleaks (lo que corre el job de CI)
 	docker run --rm -v "$(CURDIR):/repo" -w /repo $(GITLEAKS_IMAGE) detect --redact -v

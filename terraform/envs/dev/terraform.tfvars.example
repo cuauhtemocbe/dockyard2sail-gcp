@@ -1,0 +1,8 @@
+# Copia este archivo a terraform.tfvars y completa los valores.
+# terraform.tfvars no se versiona.
+#
+# project_id no va aquí: lo pasa `make plan ENV=dev PROJECT_ID=<proyecto>`.
+
+# Opcionales (valores por defecto):
+# region = "us-central1"
+# image  = "us-docker.pkg.dev/cloudrun/container/hello"

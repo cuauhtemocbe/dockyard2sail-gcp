@@ -14,6 +14,10 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+# Los módulos de terraform/modules/ no llevan lockfile: Terraform solo usa el de la raíz.
+# `make validate-tf` genera uno local al hacer init.
+terraform/modules/**/.terraform.lock.hcl
+
 # Variables con valores reales (los *.tfvars.example sí se versionan).
 # .terraform.lock.hcl SÍ se versiona: fija las versiones de los providers.
 *.tfvars
