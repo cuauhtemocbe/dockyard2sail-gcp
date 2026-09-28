@@ -12,3 +12,11 @@ module "cloud_run_service" {
   # dev se destruye y se recrea con frecuencia.
   deletion_protection = false
 }
+
+module "artifact_registry" {
+  source = "../../modules/artifact-registry"
+
+  project_id    = var.project_id
+  repository_id = "dockyard2sail"
+  location      = var.region
+}
