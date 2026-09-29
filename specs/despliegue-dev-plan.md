@@ -42,7 +42,7 @@ Cada PR espera tu confirmación antes del push, como pide `CLAUDE.md`.
 
 ## Milestones
 
-- [ ] **M1**: `make plan ENV=dev` inicializa el backend remoto y da 0 cambios; `make validate` sigue en verde después.
+- [x] **M1**: `make plan ENV=dev` inicializa el backend remoto y da 0 cambios; `make validate` sigue en verde después.
 - [ ] **M2**: el servicio con el placeholder responde HTTP 200 con acceso público y 403 sin él.
 - [ ] **M3**: el repositorio tiene su política de limpieza; un secreto de prueba llega al servicio y otro sin acceso falla.
 - [ ] **M4**: un PR de prueba muestra el `plan` en su summary y `apply` con la SA `plan` da `PERMISSION_DENIED`.
