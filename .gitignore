@@ -39,6 +39,8 @@ id_ed25519*
 *.secret
 *.secrets
 secrets/
+# Excepción: el módulo de Terraform que crea los secretos (sin valores) sí se versiona.
+!/terraform/modules/secrets/
 credentials.json
 *-credentials.json
 service-account*.json

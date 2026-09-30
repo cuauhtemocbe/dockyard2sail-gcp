@@ -24,3 +24,20 @@ variable "image" {
   type        = string
   default     = "us-docker.pkg.dev/cloudrun/container/hello"
 }
+
+variable "secret_ids" {
+  description = "Ids de los secretos que se crean sin valor. Paso 1 del montaje: se aplican, se carga el valor con `gcloud secrets versions add` y solo entonces se montan con secret_env."
+  type        = set(string)
+  default     = []
+}
+
+variable "secret_env" {
+  description = "Variables de entorno del servicio que se montan desde Secret Manager: nombre de la variable => id del secreto (debe estar en secret_ids y tener al menos una versión). Paso 2 del montaje."
+  type        = map(string)
+  default     = {}
+
+  validation {
+    condition     = alltrue([for id in values(var.secret_env) : contains(var.secret_ids, id)])
+    error_message = "Cada valor de secret_env debe ser un id que esté en secret_ids."
+  }
+}
