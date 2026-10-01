@@ -14,6 +14,10 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Added
 
+- Raíz `terraform/envs/dev` con estado remoto (prefijo `envs/dev`) y los targets `make plan` y `make apply` (`ENV=dev PROJECT_ID=...`). Dependabot cubre también `envs/dev`.
+- Módulo `terraform/modules/cloud-run-service`: SA de runtime sin roles de proyecto y servicio Cloud Run v2 con acceso público opcional. Ignora los cambios de imagen para que un `plan` no revierta lo que despliega `gcloud run deploy`.
+- Módulo `terraform/modules/secrets`: crea secretos sin valor y da `roles/secretmanager.secretAccessor` sobre cada uno a la SA de runtime. `envs/dev` lo conecta con las variables `secret_ids` y `secret_env` (montaje en dos pasos). `.gitignore` exceptúa este módulo de la regla `secrets/`.
+- Módulo `terraform/modules/artifact-registry`: repositorio Docker con dos políticas de limpieza (conserva las últimas N versiones y borra las sin tag con más de M días).
 - Job `lock-check` en CI y target `make lock-check` (parte de `make validate`): falla si un módulo con `.tf` no tiene `.terraform.lock.hcl` o si el lockfile no corresponde a sus providers (`init -lockfile=readonly`).
 - Dependabot para el ecosistema `terraform` en `terraform/bootstrap`, con updates semanales agrupados.
 - Módulo `terraform/bootstrap/` (una vez por proyecto): bucket de estado remoto con versionado y retención configurable, pool y provider de Workload Identity Federation para GitHub, SA `plan` de solo lectura (cualquier ref) y SA `apply` de escritura (solo `refs/heads/main`), sin llaves JSON. Incluye su README y los targets `make bootstrap`, `bootstrap-migrate` y `bootstrap-output`.

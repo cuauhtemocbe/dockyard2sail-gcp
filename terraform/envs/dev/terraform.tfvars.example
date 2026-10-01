@@ -1,0 +1,15 @@
+# Copia este archivo a terraform.tfvars y completa los valores.
+# terraform.tfvars no se versiona.
+#
+# project_id no va aquí: lo pasa `make plan ENV=dev PROJECT_ID=<proyecto>`.
+
+# Opcionales (valores por defecto):
+# region = "us-central1"
+# image  = "us-docker.pkg.dev/cloudrun/container/hello"
+
+# Montaje de secretos en dos pasos:
+# 1. Aplica con secret_ids y sin secret_env: crea el secreto vacío y da acceso a la SA de runtime.
+# 2. Carga el valor: printf '%s' "<valor>" | gcloud secrets versions add mi-secreto --data-file=-
+# 3. Agrega secret_env y aplica de nuevo: Cloud Run exige que el secreto ya tenga una versión.
+# secret_ids = ["mi-secreto"]
+# secret_env = { MI_VARIABLE = "mi-secreto" }
