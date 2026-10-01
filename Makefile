@@ -18,12 +18,16 @@ GCLOUD_ADC ?= $(HOME)/.config/gcloud/application_default_credentials.json
 TF_ADC = docker run --rm $$([ -t 0 ] && echo -it) -u $$(id -u):$$(id -g) -e HOME=/tmp \
 	-e GOOGLE_APPLICATION_CREDENTIALS=/gcloud/adc.json -v "$(GCLOUD_ADC):/gcloud/adc.json:ro" \
 	-v "$(CURDIR):/workspace" -w /workspace $(TERRAFORM_IMAGE)
+# Variante para CI: toma un token de acceso de la variable de entorno GOOGLE_OAUTH_ACCESS_TOKEN
+# (lo emite la SA `plan` por WIF) en vez de un archivo de credenciales.
+TF_TOKEN = docker run --rm -u $$(id -u):$$(id -g) -e HOME=/tmp -e GOOGLE_OAUTH_ACCESS_TOKEN \
+	-v "$(CURDIR):/workspace" -w /workspace $(TERRAFORM_IMAGE)
 BOOTSTRAP_DIR = terraform/bootstrap
 ENV_DIR = terraform/envs/$(ENV)
 
 .DEFAULT_GOAL := help
 .PHONY: help fmt fmt-check validate-tf lock-check license-check validate secrets-scan secrets-history trivy install-hooks \
-	bootstrap bootstrap-migrate bootstrap-output plan apply _require-project-id _require-adc _require-env
+	bootstrap bootstrap-migrate bootstrap-output plan plan-ci apply _require-project-id _require-adc _require-env
 
 fmt: ## Formatear todos los .tf con terraform fmt
 	$(TF) fmt -recursive
@@ -77,6 +81,11 @@ bootstrap-output: _require-adc ## Mostrar los outputs de bootstrap (requiere hab
 plan: _require-env _require-project-id _require-adc ## terraform plan de un entorno (ENV=dev PROJECT_ID=...); el bucket de estado es <PROJECT_ID>-tfstate
 	$(TF_ADC) -chdir=$(ENV_DIR) init -input=false -backend-config="bucket=$(PROJECT_ID)-tfstate"
 	$(TF_ADC) -chdir=$(ENV_DIR) plan -input=false -var project_id=$(PROJECT_ID)
+
+plan-ci: _require-env _require-project-id ## plan para CI (ENV=dev PROJECT_ID=...): sin lock de estado y con token en GOOGLE_OAUTH_ACCESS_TOKEN
+	@test -n "$$GOOGLE_OAUTH_ACCESS_TOKEN" || { echo "Falta GOOGLE_OAUTH_ACCESS_TOKEN"; exit 1; }
+	$(TF_TOKEN) -chdir=$(ENV_DIR) init -input=false -backend-config="bucket=$(PROJECT_ID)-tfstate"
+	$(TF_TOKEN) -chdir=$(ENV_DIR) plan -input=false -lock=false -no-color -var project_id=$(PROJECT_ID)
 
 apply: _require-env _require-project-id _require-adc ## terraform apply de un entorno (ENV=dev PROJECT_ID=...); pide confirmación
 	$(TF_ADC) -chdir=$(ENV_DIR) init -input=false -backend-config="bucket=$(PROJECT_ID)-tfstate"

@@ -45,7 +45,7 @@ Cada PR espera tu confirmación antes del push, como pide `CLAUDE.md`.
 - [x] **M1**: `make plan ENV=dev` inicializa el backend remoto y da 0 cambios; `make validate` sigue en verde después.
 - [ ] **M2**: el servicio con el placeholder responde HTTP 200 con acceso público y 403 sin él.
 - [x] **M3**: el repositorio tiene su política de limpieza; un secreto de prueba llega al servicio y la SA de runtime no tiene roles de proyecto (el acceso es por secreto, así no lee otros).
-- [ ] **M4**: un PR de prueba muestra el `plan` en su summary y `apply` con la SA `plan` da `PERMISSION_DENIED`.
+- [x] **M4**: un PR de prueba muestra el `plan` en su summary y la SA `plan` solo tiene roles de lectura (se lee su IAM; un `apply` de prueba escribiría en dev si la SA tuviera permisos de más).
 - [ ] **M5**: roles de `bootstrap` ajustados, `plan` de PR sin 403 y `apply` de `envs/dev` como SA `apply` sin errores.
 
 ## Diseño de cada pieza

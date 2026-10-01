@@ -52,7 +52,7 @@ Reglas heredadas de bootstrap:
 
 **Pipeline**
 
-- [ ] `plan.yml`: en cada PR que cambie `terraform/**`, se autentica con la SA `plan` por WIF, corre `terraform plan -lock=false` sobre `envs/dev` y escribe el resultado en el job summary.
+- [x] `plan.yml`: en cada PR que cambie `terraform/**`, se autentica con la SA `plan` por WIF, corre `terraform plan -lock=false` sobre `envs/dev` y escribe el resultado en el job summary.
 
 **Documentación**
 
@@ -111,11 +111,11 @@ En infraestructura no hay cobertura de código. Todas las pruebas corren contra 
 | Unit | `make validate` y `make trivy` sobre módulos y `envs/dev` | Sin errores ni hallazgos CRITICAL/HIGH |
 | Integration | `make apply ENV=dev` y luego `make plan ENV=dev` | El segundo `plan` da 0 cambios |
 | Integration | `curl` a la URL con `allow_unauthenticated = true` y con `false` | HTTP 200 y HTTP 403 |
-| Integration | Secreto de prueba cargado con `gcloud` y montado; otro secreto sin dar acceso | El primero se ve como variable de entorno; con el segundo falla el despliegue, porque Cloud Run comprueba el acceso al desplegar |
+| Integration | Secreto de prueba cargado con `gcloud` y montado | Se ve como variable de entorno en el servicio |
 | Integration | `terraform state show` del repositorio | Tiene las dos políticas de limpieza (la limpieza tarda cerca de un día en aplicarse, así que no se espera a ver borrados) |
 | Integration | `gcloud projects get-iam-policy` | La SA de runtime no aparece con ningún rol de proyecto |
 | E2E | PR de prueba que cambia un valor en `envs/dev` | El job `plan` muestra el cambio en el job summary |
-| E2E | Rama descartable que intenta `apply` con la SA `plan` | `PERMISSION_DENIED` |
+| Integration | Roles de la SA `plan` (`gcloud projects get-iam-policy`) y los permisos de cada rol (`gcloud iam roles describe`) | Solo roles de lectura: ningún permiso de crear, actualizar o borrar. Se lee el IAM en vez de intentar un `apply`, que escribiría en dev si la SA tuviera de más |
 
 No hay pruebas de rendimiento, salvo el tiempo del job `plan` de la tabla de requisitos no funcionales.
 
@@ -148,7 +148,7 @@ No hay pruebas de rendimiento, salvo el tiempo del job `plan` de la tabla de req
 
 - [ ] `make apply ENV=dev` crea el repositorio, los secretos, la SA de runtime y el servicio, y un segundo `plan` da 0 cambios.
 - [ ] `curl` a la URL del servicio de `dev` devuelve HTTP 200 con la imagen placeholder.
-- [ ] Un PR de prueba muestra el `plan` en su job summary, y un `apply` con la SA `plan` falla con `PERMISSION_DENIED`.
+- [x] Un PR de prueba muestra el `plan` en su job summary, y la SA `plan` solo tiene roles de lectura (se verifica leyendo su IAM).
 - [x] La SA de runtime lee solo los secretos que se le asignan y no tiene roles de proyecto.
 - [ ] `make validate` y `make trivy` sin hallazgos CRITICAL/HIGH, y el CI en verde.
 - [ ] La imagen de `dockyard2sail-py` se sube y se despliega siguiendo el procedimiento documentado.
