@@ -28,7 +28,7 @@ Cada rol lleva un comentario en el código que explica para qué se necesita.
 |----|-----|---------|
 | `plan` | `roles/run.viewer`, `roles/artifactregistry.reader`, `roles/secretmanager.viewer`, `roles/iam.securityReviewer`, `roles/serviceusage.serviceUsageConsumer`, `roles/iam.workloadIdentityPoolViewer` | Proyecto |
 | `plan` | `roles/storage.objectViewer`, `roles/storage.legacyBucketReader` | Solo el bucket de estado |
-| `apply` | `roles/run.admin`, `roles/artifactregistry.admin`, `roles/secretmanager.admin`, `roles/iam.serviceAccountAdmin`, `roles/iam.serviceAccountUser` | Proyecto |
+| `apply` | `roles/run.admin`, `roles/artifactregistry.admin`, `roles/secretmanager.admin`, `roles/iam.serviceAccountAdmin` | Proyecto |
 | `apply` | `roles/storage.objectAdmin` | Solo el bucket de estado |
 
 Tres decisiones de diseño detrás de esa tabla:
@@ -64,7 +64,7 @@ Tres decisiones de diseño detrás de esa tabla:
 | En un proyecto nuevo, `cloudresourcemanager` y `serviceusage` pueden no estar activas, y Terraform necesita ambas para habilitar el resto. | Se documenta como prerrequisito en el README del módulo. Si el primer `apply` falla por esa causa, se documenta el paso mínimo para activarlas. |
 | Un binding de IAM puede fallar con "service account does not exist" segundos después de crear la SA. Es un comportamiento conocido de GCP que aún no se ha reproducido en este módulo. | Reintentar el `apply`, que es idempotente. Solo si se repite siempre se agrega una espera con `time_sleep`. |
 | El evento `pull_request_target` corre en el contexto de la rama base. Su `ref` sería `refs/heads/main` y obtendría la SA `apply`. | El README del módulo prohíbe usar `pull_request_target` con WIF. La regla se aplica al escribir los workflows, que son el siguiente ítem de la hoja de ruta. |
-| `apply` tiene `roles/iam.serviceAccountAdmin` y `roles/iam.serviceAccountUser` sobre todo el proyecto. | Se aceptan en esta versión porque `cloud-run-service` necesita crear la SA de runtime y actuar como ella. Se acotan cuando ese módulo exista. |
+| `apply` tiene `roles/iam.serviceAccountAdmin` sobre todo el proyecto. | Se acepta porque `cloud-run-service` necesita crear la SA de runtime y su binding. `roles/iam.serviceAccountUser` ya no está en el proyecto: `cloud-run-service` lo da sobre su SA de runtime (ver el changelog de `specs/bootstrap.md`). |
 | Las credenciales de `gcloud auth application-default login` incluyen un token de renovación de larga vida en la computadora de quien ejecuta. No está en el repo ni en los secrets de GitHub, así que no rompe las reglas del proyecto. | El README recomienda revocarlas al terminar el bootstrap. |
 | Trivy podría marcar el bucket por no usar Cloud KMS. No está verificado. | Cloud KMS está fuera de alcance. Si el hallazgo es CRITICAL o HIGH, se documenta la excepción con fecha de revisión, como pide `CLAUDE.md`. |
 
