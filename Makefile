@@ -13,10 +13,11 @@ TF_VALIDATE = docker run --rm -u $$(id -u):$$(id -g) -e HOME=/tmp -e TF_DATA_DIR
 
 # Variante para bootstrap: monta solo el archivo de credenciales de gcloud (application default
 # credentials), en solo lectura, y lo expone a Terraform. -it solo si hay terminal: apply pide
-# confirmación y necesita una; init -migrate-state -force-copy no.
+# confirmación y necesita una; init -migrate-state -force-copy no. Si GOOGLE_IMPERSONATE_SERVICE_ACCOUNT
+# está definida en tu shell, Terraform actúa como esa SA (así se prueba lo que puede hacer `apply`).
 GCLOUD_ADC ?= $(HOME)/.config/gcloud/application_default_credentials.json
 TF_ADC = docker run --rm $$([ -t 0 ] && echo -it) -u $$(id -u):$$(id -g) -e HOME=/tmp \
-	-e GOOGLE_APPLICATION_CREDENTIALS=/gcloud/adc.json -v "$(GCLOUD_ADC):/gcloud/adc.json:ro" \
+	-e GOOGLE_APPLICATION_CREDENTIALS=/gcloud/adc.json -e GOOGLE_IMPERSONATE_SERVICE_ACCOUNT -v "$(GCLOUD_ADC):/gcloud/adc.json:ro" \
 	-v "$(CURDIR):/workspace" -w /workspace $(TERRAFORM_IMAGE)
 # Variante para CI: toma un token de acceso de la variable de entorno GOOGLE_OAUTH_ACCESS_TOKEN
 # (lo emite la SA `plan` por WIF) en vez de un archivo de credenciales.

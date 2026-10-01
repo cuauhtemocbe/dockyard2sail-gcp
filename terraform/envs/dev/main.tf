@@ -15,6 +15,10 @@ module "cloud_run_service" {
 
   # dev se destruye y se recrea con frecuencia.
   deletion_protection = false
+
+  # La SA `apply` de bootstrap actúa como la SA de runtime al desplegar. Bootstrap no le da
+  # serviceAccountUser sobre el proyecto: lo recibe aquí, solo sobre la SA de este servicio.
+  deployers = ["${var.name_prefix}-apply@${var.project_id}.iam.gserviceaccount.com"]
 }
 
 module "artifact_registry" {

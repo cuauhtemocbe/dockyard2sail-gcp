@@ -2,7 +2,7 @@
 title: Módulo bootstrap
 status: completed
 created: 2026-09-25
-updated: 2026-09-27
+updated: 2026-10-01
 issue: "#7"
 ---
 
@@ -177,3 +177,11 @@ Ver [`specs/bootstrap-plan.md`](./bootstrap-plan.md).
 ## Changelog
 
 <!-- Only used once this spec has shipped (status reached `completed`) and gets touched again. Before editing Requirements/Architecture above, append a dated entry here using delta markers, so the audit trail survives the in-place rewrite. Leave empty until the first post-completion change. -->
+
+### 2026-10-01: `serviceAccountUser` de la SA `apply` acotado a la SA de runtime
+
+Motivo: con el rol sobre todo el proyecto, la SA `apply` podía actuar como cualquier service account. Issue #20.
+
+- **MODIFIED** Permisos de `apply` (`bootstrap-plan.md`): ya no tiene `roles/iam.serviceAccountUser` sobre el proyecto. Lo recibe solo sobre la SA de runtime de cada servicio, por el binding que crea `cloud-run-service` para sus `deployers`. `roles/iam.serviceAccountAdmin` sigue sobre el proyecto, porque hace falta para crear la SA de runtime y su binding.
+- **ADDED** Orden de aplicación: `envs/<env>` primero (crea el binding) y `bootstrap` después (quita el rol del proyecto).
+- **Verificado** el 2026-10-01: un `apply` de `envs/dev` suplantando a la SA `apply` actualizó el servicio de Cloud Run (registro de auditoría: `UpdateService` de `dockyard2sail-apply@…`, 05:40:57 UTC) sin el rol sobre el proyecto. Para suplantarla se dio `roles/iam.serviceAccountTokenCreator` sobre la SA `apply` a la persona administradora, de 05:01:49 UTC a 05:43:26 UTC; ya está revocado y la SA solo conserva `roles/iam.workloadIdentityUser`.

@@ -9,6 +9,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Changed
 
+- La SA `apply` de bootstrap ya no tiene `roles/iam.serviceAccountUser` sobre el proyecto: lo recibe solo sobre la SA de runtime, con el binding que crea `cloud-run-service` para su nueva variable `deployers` (`envs/dev` pasa la SA `apply`). `iam.serviceAccountAdmin` sigue sobre el proyecto, porque hace falta para crear la SA de runtime. `TF_ADC` pasa `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` al contenedor.
 - Decisión sobre la protección de `main`: `enforce_admins` queda en `true` (sin excepción para el owner). Documentado en `CLAUDE.md`, el README y `terraform/bootstrap/README.md`.
 - El `Makefile` anota la versión de Terraform de la imagen fijada (v1.16.4) y que sus imágenes se actualizan a mano.
 

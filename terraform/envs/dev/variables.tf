@@ -41,3 +41,9 @@ variable "secret_env" {
     error_message = "Cada valor de secret_env debe ser un id que esté en secret_ids."
   }
 }
+
+variable "name_prefix" {
+  description = "Prefijo de las service accounts de CI. Debe coincidir con el name_prefix de terraform/bootstrap."
+  type        = string
+  default     = "dockyard2sail"
+}

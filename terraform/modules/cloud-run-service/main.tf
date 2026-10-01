@@ -7,6 +7,16 @@ resource "google_service_account" "runtime" {
   description  = "Identidad del servicio de Cloud Run ${var.name}. Sin roles de proyecto."
 }
 
+# Permite a los deployers actuar como la SA de runtime al crear o actualizar el servicio.
+# El rol se da sobre esta SA y no sobre el proyecto, así un deployer no puede actuar como otras.
+resource "google_service_account_iam_member" "deployer" {
+  for_each = var.deployers
+
+  service_account_id = google_service_account.runtime.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${each.value}"
+}
+
 resource "google_cloud_run_v2_service" "this" {
   project  = var.project_id
   name     = var.name

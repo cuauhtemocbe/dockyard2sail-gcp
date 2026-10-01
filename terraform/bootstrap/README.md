@@ -91,7 +91,7 @@ La SA `apply` se obtiene desde `refs/heads/main`, así que quien pueda empujar d
 - **Un rol recién asignado tarda cerca de un minuto en propagarse.** Un `403` inmediato después de un `apply` no siempre es un rol faltante: espera y reintenta.
 - **Un binding puede fallar con "service account does not exist"** segundos después de crear la SA. El `apply` es idempotente: reintenta.
 - **`name_prefix` cambia el nombre de las SAs y del pool, pero no el del bucket**, que siempre es `<project_id>-tfstate`.
-- **`apply` tiene `roles/iam.serviceAccountAdmin` y `roles/iam.serviceAccountUser` sobre todo el proyecto**, porque `cloud-run-service` necesita crear la SA de runtime y actuar como ella. Se acotarán cuando ese módulo exista.
+- **`apply` tiene `roles/iam.serviceAccountAdmin` sobre todo el proyecto**, porque `cloud-run-service` necesita crear la SA de runtime y su binding. No tiene `roles/iam.serviceAccountUser` sobre el proyecto: lo recibe solo sobre la SA de runtime de cada servicio, por el binding que crea `cloud-run-service` para sus `deployers`. Al desplegar un entorno por primera vez, aplica `envs/<env>` antes de quitar ese rol a una SA `apply` que ya lo tuviera.
 - **`apply` no tiene `roles/resourcemanager.projectIamAdmin`**, a propósito: con él podría asignarse `roles/owner`. Los módulos siguientes dan permisos sobre cada recurso, no sobre el proyecto.
 
 ## Al terminar
