@@ -1,0 +1,55 @@
+name: plan
+
+# Muestra el `terraform plan` de dev en cada PR que toca terraform/. Solo lectura: se autentica
+# como la SA `plan`, que no puede aplicar. No es un check requerido: un fallo aquí (p. ej. una
+# credencial caducada) no debe bloquear el merge de cambios ajenos a Terraform.
+#
+# Usa `pull_request`, nunca `pull_request_target`: el código del PR corre sin acceso a secretos
+# del repositorio, y los PRs desde forks se saltan porque no obtienen el token OIDC.
+
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+      - Makefile
+      - .github/workflows/plan.yml
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Authenticate as the plan SA
+        id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.PLAN_SERVICE_ACCOUNT }}
+          token_format: access_token
+          create_credentials_file: false
+          access_token_scopes: https://www.googleapis.com/auth/cloud-platform
+
+      - name: Terraform plan (dev)
+        env:
+          GOOGLE_OAUTH_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+        run: make plan-ci ENV=dev PROJECT_ID="${PROJECT_ID}" 2>&1 | tee plan.txt
+
+      - name: Publish the plan in the job summary
+        if: always()
+        run: |
+          {
+            echo '## terraform plan (dev)'
+            echo '```'
+            tail -c 60000 plan.txt 2>/dev/null || echo 'Sin salida.'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
