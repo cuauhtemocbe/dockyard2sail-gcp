@@ -56,12 +56,13 @@ resource "google_service_account_iam_member" "plan_workload_identity" {
 locals {
   # Roles de escritura de la SA `apply`, sobre todo el proyecto. Deliberadamente sin
   # owner, editor ni projectIamAdmin: con este último podría asignarse owner a sí misma.
+  # Tampoco serviceAccountUser sobre el proyecto: lo recibe solo sobre la SA de runtime de cada
+  # servicio, mediante el binding que crea el módulo cloud-run-service para sus `deployers`.
   apply_project_roles = toset([
     "roles/run.admin",                         # crear y actualizar servicios de Cloud Run
     "roles/artifactregistry.admin",            # crear y administrar repositorios de Artifact Registry
     "roles/secretmanager.admin",               # crear secretos y sus versiones
-    "roles/iam.serviceAccountAdmin",           # crear las SAs de runtime de los servicios
-    "roles/iam.serviceAccountUser",            # actuar como la SA de runtime al desplegar un servicio de Cloud Run
+    "roles/iam.serviceAccountAdmin",           # crear las SAs de runtime de los servicios y su binding de serviceAccountUser (sigue sobre el proyecto: hace falta para crear la SA)
     "roles/serviceusage.serviceUsageConsumer", # usar el proyecto como quota project (user_project_override)
   ])
 }

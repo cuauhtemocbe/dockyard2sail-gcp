@@ -51,3 +51,9 @@ variable "deletion_protection" {
   type        = bool
   default     = true
 }
+
+variable "deployers" {
+  description = "Correos de las service accounts que pueden actuar como la SA de runtime (roles/iam.serviceAccountUser sobre ella, no sobre el proyecto). Quien despliega o actualiza el servicio lo necesita; en este template, la SA `apply` de bootstrap."
+  type        = set(string)
+  default     = []
+}
