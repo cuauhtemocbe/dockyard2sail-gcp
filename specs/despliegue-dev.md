@@ -42,12 +42,12 @@ Reglas heredadas de bootstrap:
 **Módulos**
 
 - [x] `artifact-registry`: repositorio Docker con limpieza automática en dos políticas. Una conserva las últimas N versiones, con o sin tag (`KEEP`). La otra borra las versiones sin tag con más de M días (`DELETE`). N y M son variables. Si una versión cumple las dos, se conserva.
-- [ ] `secrets`: crea secretos sin valor y da `roles/secretmanager.secretAccessor` sobre cada uno a la SA de runtime. No crea versiones.
-- [ ] `cloud-run-service`: crea la SA de runtime (sin ningún rol de proyecto) y el servicio. Monta los secretos como variables de entorno, siempre con la versión `latest`. Desactiva la comprobación del invocador solo si `allow_unauthenticated` es `true`. Usa `min_instances = 0` por defecto.
+- [x] `secrets`: crea secretos sin valor y da `roles/secretmanager.secretAccessor` sobre cada uno a la SA de runtime. No crea versiones.
+- [x] `cloud-run-service`: crea la SA de runtime (sin ningún rol de proyecto) y el servicio. Monta los secretos como variables de entorno, siempre con la versión `latest`. Desactiva la comprobación del invocador solo si `allow_unauthenticated` es `true`. Usa `min_instances = 0` por defecto.
 
 **Entorno y comandos**
 
-- [ ] `envs/dev` compone los tres módulos, con su estado en el bucket de bootstrap (prefijo `envs/dev`), `terraform.tfvars.example` y `.terraform.lock.hcl`.
+- [x] `envs/dev` compone los tres módulos, con su estado en el bucket de bootstrap (prefijo `envs/dev`), `terraform.tfvars.example` y `.terraform.lock.hcl`.
 - [x] `make plan ENV=dev` y `make apply ENV=dev`, con Terraform en Docker (el README ya los anuncia).
 
 **Pipeline**
@@ -149,7 +149,7 @@ No hay pruebas de rendimiento, salvo el tiempo del job `plan` de la tabla de req
 - [ ] `make apply ENV=dev` crea el repositorio, los secretos, la SA de runtime y el servicio, y un segundo `plan` da 0 cambios.
 - [ ] `curl` a la URL del servicio de `dev` devuelve HTTP 200 con la imagen placeholder.
 - [ ] Un PR de prueba muestra el `plan` en su job summary, y un `apply` con la SA `plan` falla con `PERMISSION_DENIED`.
-- [ ] La SA de runtime lee solo los secretos que se le asignan y no tiene roles de proyecto.
+- [x] La SA de runtime lee solo los secretos que se le asignan y no tiene roles de proyecto.
 - [ ] `make validate` y `make trivy` sin hallazgos CRITICAL/HIGH, y el CI en verde.
 - [ ] La imagen de `dockyard2sail-py` se sube y se despliega siguiendo el procedimiento documentado.
 
