@@ -16,7 +16,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Added
 
-- `sonar-project.properties` para el análisis local con SonarQube (`/sonar-check`): analiza `terraform/` y `.github/` y excluye los directorios de datos de Terraform. `.scannerwork/` queda en `.gitignore` (#26).
+- `sonar-project.properties` para el análisis local con SonarQube (`/sonar-check`): analiza `terraform/` y `.github/` y excluye los directorios de datos de Terraform. `.scannerwork/` queda en `.gitignore` (#26). `.gitleaksignore` exceptúa la línea `sonar.projectKey` (el nombre del repo, no un secreto), que gitleaks marcaba como `generic-api-key`.
 - Workflow `plan.yml`: en cada PR que cambia `terraform/**` corre `make plan-ci ENV=dev` con la SA `plan` (WIF, solo lectura, `-lock=false`) y publica el plan en el job summary. Se salta en forks y no es un check requerido. Lee las variables de repositorio `PLAN_SERVICE_ACCOUNT` y `GCP_PROJECT_ID`.
 - Raíz `terraform/envs/dev` con estado remoto (prefijo `envs/dev`) y los targets `make plan` y `make apply` (`ENV=dev PROJECT_ID=...`). Dependabot cubre también `envs/dev`.
 - Módulo `terraform/modules/cloud-run-service`: SA de runtime sin roles de proyecto y servicio Cloud Run v2 con acceso público opcional. Ignora los cambios de imagen para que un `plan` no revierta lo que despliega `gcloud run deploy`.
