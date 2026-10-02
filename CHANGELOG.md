@@ -9,12 +9,14 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Changed
 
+- `make trivy` corre Trivy en Docker (imagen `TRIVY_IMAGE` fijada por digest, v0.75.0) con la base de vulnerabilidades cacheada en `~/.cache/trivy`, y acepta `SEVERITY` (por defecto `CRITICAL,HIGH`). El hook `pre-push` ya no invoca el binario: llama a `make trivy SEVERITY=CRITICAL`, así que `git push` funciona sin Trivy instalado y los flags viven solo en el `Makefile` (#6).
 - La SA `apply` de bootstrap ya no tiene `roles/iam.serviceAccountUser` sobre el proyecto: lo recibe solo sobre la SA de runtime, con el binding que crea `cloud-run-service` para su nueva variable `deployers` (`envs/dev` pasa la SA `apply`). `iam.serviceAccountAdmin` sigue sobre el proyecto, porque hace falta para crear la SA de runtime. `TF_ADC` pasa `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` al contenedor.
 - Decisión sobre la protección de `main`: `enforce_admins` queda en `true` (sin excepción para el owner). Documentado en `CLAUDE.md`, el README y `terraform/bootstrap/README.md`.
 - El `Makefile` anota la versión de Terraform de la imagen fijada (v1.16.4) y que sus imágenes se actualizan a mano.
 
 ### Added
 
+- `sonar-project.properties` para el análisis local con SonarQube (`/sonar-check`): analiza `terraform/` y `.github/` y excluye los directorios de datos de Terraform. `.scannerwork/` queda en `.gitignore` (#26). `.gitleaksignore` exceptúa la línea `sonar.projectKey` (el nombre del repo, no un secreto), que gitleaks marcaba como `generic-api-key`.
 - `terraform/envs/dev/README.md`: `apply` en dos pasos para montar secretos, procedimiento manual para subir la imagen y desplegarla con `gcloud run deploy` (sin `--tag`), y los gotchas del entorno. El README raíz, `CLAUDE.md` y la hoja de ruta reflejan los módulos, el entorno y el workflow que ya existen.
 - Workflow `plan.yml`: en cada PR que cambia `terraform/**` corre `make plan-ci ENV=dev` con la SA `plan` (WIF, solo lectura, `-lock=false`) y publica el plan en el job summary. Se salta en forks y no es un check requerido. Lee las variables de repositorio `PLAN_SERVICE_ACCOUNT` y `GCP_PROJECT_ID`.
 - Raíz `terraform/envs/dev` con estado remoto (prefijo `envs/dev`) y los targets `make plan` y `make apply` (`ENV=dev PROJECT_ID=...`). Dependabot cubre también `envs/dev`.

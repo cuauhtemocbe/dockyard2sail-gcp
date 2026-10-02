@@ -19,7 +19,7 @@ make lock-check     # cada directorio raíz (bootstrap y envs/*) tiene .terrafor
 make validate       # fmt-check + validate-tf + lock-check + license-check (lo que corre el pre-commit)
 make secrets-scan   # gitleaks sobre el diff staged
 make secrets-history # gitleaks sobre todo el historial de git (lo que corre el job gitleaks de CI)
-make trivy          # Trivy fs: vulnerabilidades + misconfiguraciones de IaC (requiere trivy en el PATH)
+make trivy          # Trivy fs en Docker: vulnerabilidades + misconfiguraciones de IaC (SEVERITY=CRITICAL,HIGH por defecto)
 make plan ENV=dev PROJECT_ID=...   # terraform plan del entorno (credenciales de gcloud)
 make apply ENV=dev PROJECT_ID=...  # terraform apply del entorno; pide confirmación
 make install-hooks  # habilitar .githooks/ (una vez por clon)
@@ -79,7 +79,7 @@ Este repo sigue el estándar personal de `meta-projects/docs/development-standar
 - **Sin `Dockerfile`, `docker-compose.yml`, linter de Python ni cobertura**: no hay código de aplicación. Se reintroducen solo si aparece uno.
 - **Sin job de `build` gateado**: no hay imagen de aplicación que construir ni escanear. El `lock-check` sí existe (`make lock-check`).
 - **Imágenes de herramientas del `Makefile` fijadas por digest y actualizadas a mano**: Dependabot no las ve, y moverlas a un `Dockerfile` solo para que las lea añadiría una capa sin otro uso.
-- **SonarQube**: herramienta personal de desarrollo local, no un gate de CI.
+- **SonarQube**: herramienta personal de desarrollo local, no un gate de CI. `sonar-project.properties` analiza `terraform/` y `.github/`.
 
 Cada una de estas exclusiones es deliberada y debe revisarse cuando cambie el alcance del repo.
 

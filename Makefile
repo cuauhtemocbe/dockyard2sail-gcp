@@ -3,6 +3,8 @@
 # Dependabot does not see these images, so they are bumped by hand.
 TERRAFORM_IMAGE ?= hashicorp/terraform@sha256:985cdc6c1d9b0a65b83377f666efd2f740b47f02ac55be1ced3d18f7d3b0e829
 GITLEAKS_IMAGE  ?= zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+# aquasec/trivy latest as of 2026-10-02 (Trivy v0.75.0), pinned by digest. Bumped by hand like the others.
+TRIVY_IMAGE     ?= aquasec/trivy@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
 
 # Terraform corre dentro de Docker con el uid del host, para no dejar archivos root en el repo.
 TF = docker run --rm -u $$(id -u):$$(id -g) -e HOME=/tmp -v "$(CURDIR):/workspace" -w /workspace $(TERRAFORM_IMAGE)
@@ -98,8 +100,16 @@ secrets-history: ## Escanear todo el historial de git con gitleaks (lo que corre
 secrets-scan: ## Escanear el diff staged con gitleaks (mismo check que el pre-commit)
 	docker run --rm -v "$(CURDIR):/repo" -w /repo $(GITLEAKS_IMAGE) protect --staged --redact -v
 
-trivy: ## Escanear vulnerabilidades y misconfiguraciones de IaC con Trivy (requiere trivy en el PATH)
-	trivy fs . --scanners vuln,misconfig --severity CRITICAL,HIGH --exit-code 1 --ignore-unfixed
+# Trivy corre en Docker con el uid del host. La base de vulnerabilidades se cachea en TRIVY_CACHE
+# para no descargarla en cada corrida. El repo se monta en solo lectura. Los flags viven solo aquí:
+# el pre-push solo cambia la severidad (make trivy SEVERITY=CRITICAL).
+TRIVY_CACHE ?= $(HOME)/.cache/trivy
+SEVERITY    ?= CRITICAL,HIGH
+
+trivy: ## Escanear vulnerabilidades y misconfiguraciones de IaC con Trivy en Docker (SEVERITY=CRITICAL,HIGH por defecto)
+	@mkdir -p "$(TRIVY_CACHE)"
+	docker run --rm -u $$(id -u):$$(id -g) -e HOME=/tmp -v "$(TRIVY_CACHE):/tmp/.cache/trivy" -v "$(CURDIR):/workspace:ro" -w /workspace \
+		$(TRIVY_IMAGE) fs . --scanners vuln,misconfig --severity $(SEVERITY) --exit-code 1 --ignore-unfixed
 
 install-hooks: ## Habilitar los git hooks (pre-commit: validate + gitleaks; pre-push: gate de Trivy)
 	git config core.hooksPath .githooks
