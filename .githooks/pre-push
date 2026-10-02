@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-if ! command -v trivy >/dev/null 2>&1; then
-  echo "pre-push: trivy not found on PATH; install it from https://trivy.dev before pushing." >&2
-  exit 1
-fi
-
 # Only CRITICAL findings with a published fix block the push. HIGH is enforced in CI.
-if ! trivy fs . --scanners vuln,misconfig --severity CRITICAL --exit-code 1 --ignore-unfixed --quiet; then
+# The Trivy flags live in the Makefile; this hook only lowers the severity.
+if ! make trivy SEVERITY=CRITICAL; then
   exit 1
 fi
 
