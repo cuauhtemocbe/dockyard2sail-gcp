@@ -1,8 +1,8 @@
 ---
 title: Despliegue en dev
-status: approved
+status: completed
 created: 2026-09-27
-updated: 2026-09-27
+updated: 2026-10-01
 issue: "#14"
 ---
 
@@ -56,7 +56,7 @@ Reglas heredadas de bootstrap:
 
 **Documentación**
 
-- [ ] Procedimiento manual para subir la imagen de `dockyard2sail-py` y actualizar el servicio con `gcloud run deploy` sin `--tag` (desplegar con tag provoca drift en Terraform).
+- [x] Procedimiento manual para subir la imagen de `dockyard2sail-py` y actualizar el servicio con `gcloud run deploy` sin `--tag` (desplegar con tag provoca drift en Terraform).
 
 ### Non-Functional Requirements
 
@@ -68,7 +68,7 @@ Reglas heredadas de bootstrap:
 | Calidad | `make validate` y `make trivy` sin hallazgos CRITICAL/HIGH. |
 | Reproducibilidad | Providers con restricción `~>` y un `.terraform.lock.hcl` en cada directorio raíz (`bootstrap` y `envs/*`), sin lockfile en `terraform/modules/`. `make lock-check` lo exige solo en las raíces y pasa. |
 | Idempotencia | Un segundo `plan` justo después del `apply` da 0 cambios. |
-| Costo | Con `min_instances = 0` y sin tráfico, solo cuesta Artifact Registry por encima de 0,5 GB gratis (0,10 USD/GB al mes) y Secret Manager por encima de 6 versiones activas (0,06 USD por versión). Se revisa en la consola de facturación una semana después del `apply`, sin automatizar. |
+| Costo | Con `min_instances = 0` y sin tráfico, solo cuesta Artifact Registry por encima de 0,5 GB gratis (0,10 USD/GB al mes) y Secret Manager por encima de 6 versiones activas (0,06 USD por versión). Se revisa en la consola de facturación una semana después del `apply`, sin automatizar. **Pendiente:** revisar hacia el 2026-10-08; no bloquea el cierre. |
 | Rendimiento | El job `plan` termina en menos de 5 minutos con la caché de Docker vacía. |
 
 ## Architecture
@@ -146,12 +146,12 @@ No hay pruebas de rendimiento, salvo el tiempo del job `plan` de la tabla de req
 
 ## Success Criteria
 
-- [ ] `make apply ENV=dev` crea el repositorio, los secretos, la SA de runtime y el servicio, y un segundo `plan` da 0 cambios.
-- [ ] `curl` a la URL del servicio de `dev` devuelve HTTP 200 con la imagen placeholder.
+- [x] `make apply ENV=dev` crea el repositorio, los secretos, la SA de runtime y el servicio, y un segundo `plan` da 0 cambios.
+- [x] `curl` a la URL del servicio de `dev` devuelve HTTP 200 con la imagen placeholder.
 - [x] Un PR de prueba muestra el `plan` en su job summary, y la SA `plan` solo tiene roles de lectura (se verifica leyendo su IAM).
 - [x] La SA de runtime lee solo los secretos que se le asignan y no tiene roles de proyecto.
-- [ ] `make validate` y `make trivy` sin hallazgos CRITICAL/HIGH, y el CI en verde.
-- [ ] La imagen de `dockyard2sail-py` se sube y se despliega siguiendo el procedimiento documentado.
+- [x] `make validate` y `make trivy` sin hallazgos CRITICAL/HIGH, y el CI en verde.
+- [x] La imagen de `dockyard2sail-py` se sube y se despliega siguiendo el procedimiento documentado.
 
 ## Implementation Plan
 

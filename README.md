@@ -7,7 +7,7 @@
 
 Template de infraestructura como código para desplegar una API en **Google Cloud Run** con Terraform, sin llaves de servicio y con CI/CD desde GitHub Actions. Es el hermano de infraestructura de [`dockyard2sail-py`](https://github.com/cuauhtemocbe/dockyard2sail-py) y [`dockyard2sail-ts`](https://github.com/cuauhtemocbe/dockyard2sail-ts): esos dos resuelven "cómo arranco el código", este resuelve "cómo lo llevo a producción en GCP".
 
-> **Estado: en construcción.** Existe el módulo [`terraform/bootstrap/`](terraform/bootstrap/README.md) (estado remoto, Workload Identity Federation y service accounts de CI), verificado en un proyecto real. El resto sigue en diseño: no hay más módulos, entornos ni workflows de despliegue. Las secciones marcadas como *planeado* se irán convirtiendo en realidad y este documento se actualizará con ellas.
+> **Estado: en construcción.** Existen el módulo [`terraform/bootstrap/`](terraform/bootstrap/README.md) (estado remoto, Workload Identity Federation y service accounts de CI), los módulos `cloud-run-service`, `artifact-registry` y `secrets`, el entorno [`terraform/envs/dev`](terraform/envs/dev/README.md) y el workflow `plan.yml`, todos verificados en un proyecto real. El resto (entorno `prod`, `budget-alert`, el workflow de `deploy` en `main`) sigue en diseño. Las secciones marcadas como *planeado* se irán convirtiendo en realidad y este documento se actualizará con ellas.
 
 ## Problema
 
@@ -61,21 +61,21 @@ La autenticación no guarda ningún secreto en GitHub: el workflow presenta un t
 
 ## Estructura prevista
 
-Hoy existe solo `terraform/bootstrap/`; el resto es planeado.
+Lo marcado como planeado todavía no existe.
 
 ```
 .
 ├── terraform/
-│   ├── bootstrap/          # Ya existe. Se corre una vez: bucket de estado, WIF, service accounts de CI
+│   ├── bootstrap/          # Se corre una vez: bucket de estado, WIF, service accounts de CI
 │   ├── modules/
 │   │   ├── cloud-run-service/
 │   │   ├── artifact-registry/
 │   │   ├── secrets/
-│   │   └── budget-alert/
+│   │   └── budget-alert/   # planeado
 │   └── envs/
 │       ├── dev/
-│       └── prod/
-├── .github/workflows/      # plan en PR, deploy en main
+│       └── prod/           # planeado
+├── .github/workflows/      # plan en PR (existe); deploy en main (planeado)
 ├── docs/                   # decisiones (ADRs) y guía de arranque
 ├── Makefile                # fmt, validate, plan, apply por entorno
 └── README.md
@@ -108,7 +108,7 @@ Para `terraform/bootstrap/` (los prerrequisitos completos están en [su README](
 
 ## Cómo usarlo
 
-El paso 1 ya funciona. Los pasos 2 y 3 son planeados.
+Los pasos 1 y 2 ya funcionan. El paso 3 es planeado.
 
 ```bash
 # 1. Crear el estado remoto y la federación de identidad (una sola vez)
@@ -116,9 +116,9 @@ El paso 1 ya funciona. Los pasos 2 y 3 son planeados.
 make bootstrap PROJECT_ID=mi-proyecto-dev
 make bootstrap-migrate PROJECT_ID=mi-proyecto-dev
 
-# 2. Planear y aplicar un entorno (planeado)
-make plan  ENV=dev
-make apply ENV=dev
+# 2. Planear y aplicar un entorno. Montar secretos y subir la imagen: terraform/envs/dev/README.md
+make plan  ENV=dev PROJECT_ID=mi-proyecto-dev
+make apply ENV=dev PROJECT_ID=mi-proyecto-dev
 
 # 3. A partir de aquí, cada merge a main despliega vía GitHub Actions (planeado)
 ```
@@ -126,17 +126,19 @@ make apply ENV=dev
 ## Hoja de ruta
 
 - [x] Módulo `bootstrap` (estado remoto + Workload Identity Federation).
-- [ ] Módulo `cloud-run-service` con el ejemplo de `dockyard2sail-py`
-- [ ] Módulos `artifact-registry` y `secrets`
-- [ ] Workflow de `plan` en PR y `deploy` en `main`
-- [ ] Entornos `dev` y `prod`
+- [x] Módulo `cloud-run-service` con el ejemplo de `dockyard2sail-py`
+- [x] Módulos `artifact-registry` y `secrets`
+- [x] Workflow de `plan` en PR
+- [ ] Workflow de `deploy` en `main`
+- [x] Entorno `dev`
+- [ ] Entorno `prod`
 - [ ] Módulo `budget-alert`
 - [x] Escaneo de la infraestructura con Trivy (misconfiguraciones de IaC) en CI
 - [ ] Guía de arranque y ADRs en `docs/`
 
 ## Desarrollo
 
-El tooling y la validación cubren `terraform/bootstrap/`. Todo corre dentro de Docker vía `make` (`make help` lista los targets):
+El tooling y la validación cubren `terraform/bootstrap/`, `terraform/envs/` y `terraform/modules/`. Todo corre dentro de Docker vía `make` (`make help` lista los targets):
 
 ```bash
 make validate       # fmt-check + terraform validate + lock-check + license-check
@@ -148,8 +150,8 @@ make install-hooks  # habilitar los git hooks (una vez por clon)
 
 - **Hooks** (`.githooks/`, habilitados con `make install-hooks`): el `pre-commit` corre `make validate` y un escaneo de secretos con [gitleaks](https://github.com/gitleaks/gitleaks) sobre el diff staged; el `pre-push` corre `make trivy SEVERITY=CRITICAL` y bloquea solo si hay un hallazgo CRITICAL con fix publicado. Trivy corre en Docker con la imagen fijada por digest en el `Makefile`, así que no hace falta instalarlo; la base de vulnerabilidades se cachea en `~/.cache/trivy`.
 - **CI** (`.github/workflows/ci.yml`): jobs paralelos `fmt`, `validate`, `lock-check`, `license-check`, `trivy-fs` y `gitleaks` (este último sobre todo el historial). Las Actions de terceros están pineadas por commit SHA y el workflow declara `permissions: contents: read`.
-- **`lock-check`**: falla si un módulo no tiene `.terraform.lock.hcl` o si el lockfile no corresponde a los providers declarados. Este template no construye imágenes, así que no hay job de build.
-- **Dependabot** abre PRs semanales agrupados para las Actions y para los providers de `terraform/bootstrap`.
+- **`lock-check`**: falla si un directorio raíz (`bootstrap` o `envs/*`) no tiene `.terraform.lock.hcl` o si el lockfile no corresponde a los providers declarados. Los módulos de `terraform/modules/` no llevan lockfile: Terraform solo usa el de la raíz. Este template no construye imágenes, así que no hay job de build.
+- **Dependabot** abre PRs semanales agrupados para las Actions y para los providers de `terraform/bootstrap` y `terraform/envs/dev`.
 - **Imágenes de herramientas fijadas por digest** en el `Makefile` (con su versión de Terraform anotada). Se actualizan a mano: Dependabot no las ve ahí.
 - **`main` protegida también para el owner** (`enforce_admins`): un push directo equivaldría a un `apply` sin revisión. Detalle en [`terraform/bootstrap/README.md`](./terraform/bootstrap/README.md#protección-de-main).
 

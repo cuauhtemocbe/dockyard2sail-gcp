@@ -4,7 +4,7 @@ Guía de instrucciones para Claude Code al trabajar en este repositorio.
 
 Stack: Terraform sobre Google Cloud (Cloud Run, Artifact Registry, Secret Manager, Workload Identity Federation), GitHub Actions. Ver `README.md` para el alcance y la arquitectura prevista, y `Makefile` para los comandos.
 
-**Estado:** en construcción. Hoy el repo tiene documentación, tooling, CI y un solo módulo de Terraform, `terraform/bootstrap/`. Los demás módulos, los entornos y los workflows de despliegue todavía no existen. No describir como hecho lo que solo está planeado.
+**Estado:** en construcción. Hoy el repo tiene documentación, tooling, CI, `terraform/bootstrap/`, los módulos `cloud-run-service`, `artifact-registry` y `secrets`, el entorno `terraform/envs/dev` y el workflow `plan.yml` (plan en PR). Todavía no existen el entorno `prod`, `budget-alert` ni el workflow de `deploy` en `main`. No describir como hecho lo que solo está planeado.
 
 ---
 
@@ -15,11 +15,13 @@ Todo corre en Docker vía `make` (`make help` los lista). Terraform usa la image
 ```bash
 make fmt-check      # terraform fmt -check -recursive
 make validate-tf    # init -backend=false + validate en cada directorio con .tf
-make lock-check     # cada módulo tiene .terraform.lock.hcl y está sincronizado con sus providers
+make lock-check     # cada directorio raíz (bootstrap y envs/*) tiene .terraform.lock.hcl sincronizado con sus providers; los módulos no llevan lockfile
 make validate       # fmt-check + validate-tf + lock-check + license-check (lo que corre el pre-commit)
 make secrets-scan   # gitleaks sobre el diff staged
 make secrets-history # gitleaks sobre todo el historial de git (lo que corre el job gitleaks de CI)
 make trivy          # Trivy fs en Docker: vulnerabilidades + misconfiguraciones de IaC (SEVERITY=CRITICAL,HIGH por defecto)
+make plan ENV=dev PROJECT_ID=...   # terraform plan del entorno (credenciales de gcloud)
+make apply ENV=dev PROJECT_ID=...  # terraform apply del entorno; pide confirmación
 make install-hooks  # habilitar .githooks/ (una vez por clon)
 ```
 
