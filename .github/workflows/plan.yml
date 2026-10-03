@@ -43,7 +43,7 @@ jobs:
         shell: bash
         env:
           GOOGLE_OAUTH_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
-          PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          PROJECT_ID: no-such-project-41-negative-test
         run: make plan-ci ENV=dev PROJECT_ID="${PROJECT_ID}" 2>&1 | tee plan.txt
 
       - name: Publish the plan in the job summary
