@@ -15,6 +15,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - README, `CLAUDE.md` y `terraform/envs/dev/README.md`: el `apply` de `dev` desde CI es el camino normal y `make apply` local la excepción. Se documenta que CI ve solo lo versionado (`terraform.tfvars` no). El texto "build + push + deploy" del README pasa a "`terraform apply` al hacer merge; la imagen se despliega desde el repo de la aplicación" (#34).
 - El `Makefile` anota la versión de Terraform de la imagen fijada (v1.16.4) y que sus imágenes se actualizan a mano.
 - `envs/dev`: `secret_ids` y `secret_env` se definen en los `default` de `variables.tf`, no en `terraform.tfvars`. Con `terraform.tfvars` (no versionado), el siguiente `deploy` destruía el secreto y sus versiones y quitaba la variable del servicio, porque CI aplica los `default`. El montaje de un secreto pasa a ser dos PRs (crear y cargar el valor; montar), el README advierte que quitar un id destruye el secreto, y `terraform.tfvars.example` ya no documenta estas variables. Los `default` siguen siendo `[]` y `{}`: `dev` no tiene secretos (#43).
+- README: el diagrama de "Arquitectura prevista" ya no muestra a GitHub Actions de este repo haciendo `docker push` ni creando una revisión de Cloud Run; esas dos flechas salen del repo de la aplicación (`dockyard2sail-py`), y este repo solo hace `terraform apply`. El texto bajo el diagrama aclara el reparto (#40).
 
 ### Fixed
 
