@@ -132,7 +132,8 @@ make apply ENV=dev PROJECT_ID=mi-proyecto-dev   # solo si CI no puede
 - [x] Módulo `bootstrap` (estado remoto + Workload Identity Federation).
 - [x] Módulo `cloud-run-service` con el ejemplo de `dockyard2sail-py`
 - [x] Módulos `artifact-registry` y `secrets`
-- [x] Workflow de `plan` en PR
+- [x] Workflow de `plan` en PR (`dev` y `bootstrap`)
+- [x] Detección semanal de drift de `dev` (`drift.yml`)
 - [x] Workflow de `deploy` en `main` (`terraform apply` de `dev`; la imagen se despliega desde el repo de la aplicación)
 - [x] Entorno `dev`
 - [ ] Entorno `prod`
@@ -153,7 +154,10 @@ make install-hooks  # habilitar los git hooks (una vez por clon)
 ```
 
 - **Hooks** (`.githooks/`, habilitados con `make install-hooks`): el `pre-commit` corre `make validate` y un escaneo de secretos con [gitleaks](https://github.com/gitleaks/gitleaks) sobre el diff staged; el `pre-push` corre `make trivy SEVERITY=CRITICAL` y bloquea solo si hay un hallazgo CRITICAL con fix publicado. Trivy corre en Docker con la imagen fijada por digest en el `Makefile`, así que no hace falta instalarlo; la base de vulnerabilidades se cachea en `~/.cache/trivy`.
-- **CI** (`.github/workflows/ci.yml`): jobs paralelos `fmt`, `validate`, `lock-check`, `license-check`, `trivy-fs` y `gitleaks` (este último sobre todo el historial). Corre en `pull_request` a `main` y en `push` a `main`, y cada job ejecuta el target de `make` del mismo nombre (`trivy-fs` ejecuta `make trivy`, con la misma versión y flags que en local). Las Actions de terceros están pineadas por commit SHA y el workflow declara `permissions: contents: read`.
+- **CI** (`.github/workflows/ci.yml`): jobs paralelos `fmt`, `validate`, `lock-check`, `license-check`, `trivy-fs` y `gitleaks` (este último sobre todo el historial). Corre en `pull_request` a `main` y en `push` a `main`, y cada job ejecuta un target de `make` con la misma versión y flags que en local: `fmt` → `fmt-check`, `validate` → `validate-tf`, `lock-check` → `lock-check`, `license-check` → `license-check`, `trivy-fs` → `trivy` y `gitleaks` → `secrets-history`. Las Actions de terceros están pineadas por commit SHA y el workflow declara `permissions: contents: read`.
+- **Planes de solo lectura** con la SA `plan`, sin lock de estado:
+  - [`plan.yml`](.github/workflows/plan.yml) muestra en el job summary del PR el `plan` de `dev` y, si el PR toca `terraform/bootstrap/`, el `Makefile` o el propio workflow, también el de `terraform/bootstrap` (`make plan-bootstrap-ci`). Un PR que solo toca `terraform/envs/` o `terraform/modules/` no lo ejecuta.
+  - [`drift.yml`](.github/workflows/drift.yml) corre cada lunes (y a mano con `workflow_dispatch`) `plan -detailed-exitcode` de `dev`: sin cambios sale en verde; drift o error salen en rojo, con el plan en el job summary.
 - **`lock-check`**: falla si un directorio raíz (`bootstrap` o `envs/*`) no tiene `.terraform.lock.hcl` o si el lockfile no corresponde a los providers declarados. Los módulos de `terraform/modules/` no llevan lockfile: Terraform solo usa el de la raíz. Este template no construye imágenes, así que no hay job de build.
 - **Dependabot** abre PRs semanales agrupados para las Actions y para los providers de `terraform/bootstrap` y `terraform/envs/dev`.
 - **Imágenes de herramientas fijadas por digest** en el `Makefile` (con su versión de Terraform anotada). Se actualizan a mano: Dependabot no las ve ahí.

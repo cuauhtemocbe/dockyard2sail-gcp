@@ -77,6 +77,14 @@ Un workflow que se autentica necesita `permissions: id-token: write` (en el job,
 - **Los PRs solo hacen `plan`**, con la SA `plan` y `-lock=false`. La SA `plan` no puede escribir en el bucket, así que no puede crear el bloqueo del estado.
 - **`apply` solo corre al hacer merge a `main`.**
 
+## Plan de bootstrap en CI
+
+Un PR que cambia `terraform/bootstrap/**`, el `Makefile` o `plan.yml` muestra el `plan` de este módulo en el job summary de [`plan.yml`](../../.github/workflows/plan.yml), con la SA `plan` y `-lock=false`. Hoy debe dar `No changes`.
+
+- `make plan-bootstrap-ci` genera `backend.tf` con el mismo `sed` que `bootstrap-migrate`, porque ese archivo no se versiona. Las variables que en local vienen de `terraform.tfvars` (no versionado) se pasan por `-var`: `region` (`REGION`, por defecto `us-central1`) y el repositorio y su ID, tomados del contexto del workflow. Con otra región, el plan mostraría un cambio.
+- Si el plan falla por un permiso de lectura de la SA `plan`, el rol que falte se añade en `service_accounts.tf` y lo aplica el owner a mano con `make bootstrap`: el `apply` de CI no cubre bootstrap.
+- [`drift.yml`](../../.github/workflows/drift.yml) planea `envs/dev`, no bootstrap: el drift de bootstrap solo se ve en un PR que lo toque.
+
 ## Protección de `main`
 
 La SA `apply` se obtiene desde `refs/heads/main`, así que quien pueda empujar directo a `main` obtiene escritura sobre el proyecto. La protección de la rama es parte de la seguridad de este módulo. Vive en GitHub, no en Terraform, y hay que configurarla al crear el repositorio (Settings → Branches → `main`):

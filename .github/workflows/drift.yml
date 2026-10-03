@@ -1,0 +1,72 @@
+name: drift
+
+# Detecta drift de dev: corre `terraform plan -detailed-exitcode` cada semana y falla si el estado
+# real difiere del código (p. ej. un cambio hecho en la consola). Solo lectura: se autentica como
+# la SA `plan`. El `schedule` corre desde la rama por defecto (refs/heads/main); la SA `plan` la
+# puede usar cualquier ref del repositorio, así que no necesita nada más.
+#
+# Códigos de terraform: 0 sin cambios (verde), 2 drift (rojo), 1 error (rojo).
+# Nota: GitHub desactiva los workflows programados tras 60 días sin actividad en el repositorio.
+
+on:
+  schedule:
+    - cron: "0 14 * * 1" # lunes, 14:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Authenticate as the plan SA
+        id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.PLAN_SERVICE_ACCOUNT }}
+          token_format: access_token
+          create_credentials_file: false
+          access_token_scopes: https://www.googleapis.com/auth/cloud-platform
+
+      # make devuelve 2 ante cualquier fallo, así que el código real de terraform se lee de la línea
+      # `terraform-plan-exitcode=N` que imprime `make drift-ci`. `set +e` evita que `bash -e` aborte
+      # antes de leerlo, y PIPESTATUS evita quedarse con el código de `tee`.
+      - name: Terraform plan (dev, detailed exit code)
+        shell: bash
+        env:
+          GOOGLE_OAUTH_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+        run: |
+          set +e
+          make drift-ci ENV=dev PROJECT_ID="${PROJECT_ID}" 2>&1 | tee plan.txt
+          make_rc=${PIPESTATUS[0]}
+          set -e
+
+          if [ "${make_rc}" -eq 0 ]; then
+            result='Sin drift: el estado real coincide con el código.'
+            fail=0
+          elif grep -qx 'terraform-plan-exitcode=2' plan.txt; then
+            result='DRIFT: el estado real difiere del código. Revisa el plan, y corrige el código o aplica el cambio por PR.'
+            fail=1
+          else
+            result='ERROR: terraform plan falló (no es drift). Revisa el log.'
+            fail=1
+          fi
+
+          {
+            echo '## terraform drift (dev)'
+            echo "**${result}**"
+            echo '```'
+            tail -c 60000 plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "${result}"
+          exit "${fail}"

@@ -1,6 +1,7 @@
 name: plan
 
-# Muestra el `terraform plan` de dev en cada PR que toca terraform/. Solo lectura: se autentica
+# Muestra el `terraform plan` de dev en cada PR que toca terraform/, y el de bootstrap en los que
+# tocan terraform/bootstrap/, el Makefile o este workflow. Solo lectura: se autentica
 # como la SA `plan`, que no puede aplicar. No es un check requerido: un fallo aquí (p. ej. una
 # credencial caducada) no debe bloquear el merge de cambios ajenos a Terraform.
 #
@@ -51,6 +52,66 @@ jobs:
         run: |
           {
             echo '## terraform plan (dev)'
+            echo '```'
+            tail -c 60000 plan.txt 2>/dev/null || echo 'Sin salida.'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Bootstrap solo se planea si el PR puede cambiar su resultado: un PR que toca solo terraform/envs/
+  # o terraform/modules/ no lo ejecuta. El job corre siempre (los filtros `paths` son del workflow
+  # entero) y se salta los pasos de plan cuando no hay cambios relevantes.
+  plan-bootstrap:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes that affect bootstrap
+        id: changes
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --name-only "${BASE_SHA}...${HEAD_SHA}" | grep -Eq '^(terraform/bootstrap/|Makefile$|\.github/workflows/plan\.yml$)'; then
+            echo 'relevant=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'relevant=false' >> "$GITHUB_OUTPUT"
+            echo 'El PR no toca bootstrap, el Makefile ni este workflow: no se planea bootstrap.'
+          fi
+
+      - name: Authenticate as the plan SA
+        if: steps.changes.outputs.relevant == 'true'
+        id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.PLAN_SERVICE_ACCOUNT }}
+          token_format: access_token
+          create_credentials_file: false
+          access_token_scopes: https://www.googleapis.com/auth/cloud-platform
+
+      # `shell: bash` activa pipefail: sin él, un `plan` fallido quedaría oculto tras `tee`.
+      - name: Terraform plan (bootstrap)
+        if: steps.changes.outputs.relevant == 'true'
+        shell: bash
+        env:
+          GOOGLE_OAUTH_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
+        run: make plan-bootstrap-ci PROJECT_ID="${PROJECT_ID}" 2>&1 | tee plan.txt
+
+      - name: Publish the plan in the job summary
+        if: always() && steps.changes.outputs.relevant == 'true'
+        run: |
+          {
+            echo '## terraform plan (bootstrap)'
             echo '```'
             tail -c 60000 plan.txt 2>/dev/null || echo 'Sin salida.'
             echo '```'
