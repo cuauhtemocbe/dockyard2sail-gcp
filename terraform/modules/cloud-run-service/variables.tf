@@ -40,6 +40,17 @@ variable "min_instances" {
   }
 }
 
+variable "max_instances" {
+  description = "Máximo de instancias del servicio. Limita la escala (el cómputo en paralelo), no el gasto: no sustituye una alerta de presupuesto. null no lo fija y Cloud Run usa su valor por defecto (100 por revisión)."
+  type        = number
+  default     = null
+
+  validation {
+    condition     = var.max_instances == null || (try(var.max_instances >= 1, false) && try(floor(var.max_instances) == var.max_instances, false))
+    error_message = "max_instances debe ser un entero mayor o igual a 1, o null para no limitar."
+  }
+}
+
 variable "secret_env" {
   description = "Variables de entorno que se montan desde Secret Manager: nombre de la variable => id del secreto. Siempre usa la versión latest. Cloud Run comprueba al desplegar que el secreto tiene versiones y que la SA de runtime puede leerlo."
   type        = map(string)

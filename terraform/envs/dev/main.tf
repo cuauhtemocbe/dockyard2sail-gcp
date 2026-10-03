@@ -13,6 +13,9 @@ module "cloud_run_service" {
   # Un servicio cerrado no se puede verificar con curl, y dev no guarda datos sensibles.
   allow_unauthenticated = true
 
+  # dev es público: el tope limita cuánto puede escalar con tráfico ajeno. No limita el gasto.
+  max_instances = 3
+
   # dev se destruye y se recrea con frecuencia.
   deletion_protection = false
 
