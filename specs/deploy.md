@@ -109,7 +109,7 @@ No hay pruebas de cobertura de código: no hay código de aplicación.
 ### Technical Constraints
 
 - Terraform corre en Docker vía `make`; el workflow no instala Terraform.
-- CI solo ve lo versionado: `terraform.tfvars` no se versiona, así que un valor que `dev` necesite en CI debe ser el `default` de la variable o venir de `TF_VAR_*`. Con `terraform.tfvars` local distinto de los defaults, el primer `deploy` revertiría esa diferencia.
+- CI solo ve lo versionado: `terraform.tfvars` no se versiona, así que un valor que `dev` necesite en CI debe ser el `default` de la variable o venir de `TF_VAR_*`. Con `terraform.tfvars` local distinto de los defaults, el primer `deploy` revertiría esa diferencia. Por eso `secret_ids` y `secret_env` se editan en los `default` de `variables.tf` y no en `terraform.tfvars` (#43): con `terraform.tfvars`, el `deploy` destruiría el secreto.
 - La SA `apply` solo se obtiene desde `refs/heads/main` (atributo `repo_ref` del provider de WIF).
 - `main` exige los checks `fmt`, `validate`, `lock-check`, `license-check`, `trivy-fs` y `gitleaks`. `deploy.yml` corre después del merge, así que no es un check requerido.
 
