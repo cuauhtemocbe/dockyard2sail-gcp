@@ -39,3 +39,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - CI en GitHub Actions con jobs paralelos: `fmt`, `validate`, `license-check` y `trivy-fs` (vulnerabilidades, misconfiguraciones de IaC y secretos). Actions pineadas por commit SHA y `permissions: contents: read`.
 - Dependabot para `github-actions`, con updates semanales agrupados.
 - `CLAUDE.md` con las reglas no negociables de infraestructura y el flujo de trabajo para agentes.
+
+### Fixed
+
+- `plan.yml`: el paso "Terraform plan (dev)" usa `shell: bash`. Sin él, GitHub corre `bash -e {0}` sin `pipefail`, y en `make plan-ci ... 2>&1 | tee plan.txt` el código de salida era el de `tee` (0): un plan fallido dejaba el job y el check en verde. Igual que ya hacía `deploy.yml` (#41).
