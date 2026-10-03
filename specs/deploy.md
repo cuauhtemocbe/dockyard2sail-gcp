@@ -3,7 +3,7 @@ title: Workflow de deploy en main
 status: approved
 created: 2026-10-02
 updated: 2026-10-02
-issue: ""
+issue: "#29"
 ---
 
 # Workflow de deploy en main

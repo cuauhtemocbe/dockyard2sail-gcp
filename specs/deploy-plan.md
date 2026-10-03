@@ -1,6 +1,7 @@
 # Implementation Plan: Workflow de deploy en main
 
-**Spec**: [deploy.md](./deploy.md)
+**Spec**: [deploy.md](./deploy.md)  
+**Issue**: #29 (T1 a T5: #30 a #34)  
 **Created**: 2026-10-02
 **Status**: approved
 
