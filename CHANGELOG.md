@@ -16,7 +16,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Added
 
-- `sonar-project.properties` para el análisis local con SonarQube (`/sonar-check`): analiza `terraform/` y `.github/` y excluye los directorios de datos de Terraform. `.scannerwork/` queda en `.gitignore` (#26). `.gitleaksignore` exceptúa la línea `sonar.projectKey` (el nombre del repo, no un secreto), que gitleaks marcaba como `generic-api-key`.
+- `sonar-project.properties` para el análisis local con SonarQube (`/sonar-check`): analiza `terraform/` y excluye los directorios de datos de Terraform. `.github/` no se analiza: el SonarQube local no trae el analizador de GitHub Actions. `.scannerwork/` queda en `.gitignore` (#26). `.gitleaksignore` exceptúa la línea `sonar.projectKey` (el nombre del repo, no un secreto), que gitleaks marcaba como `generic-api-key`.
 - `terraform/envs/dev/README.md`: `apply` en dos pasos para montar secretos, procedimiento manual para subir la imagen y desplegarla con `gcloud run deploy` (sin `--tag`), y los gotchas del entorno. El README raíz, `CLAUDE.md` y la hoja de ruta reflejan los módulos, el entorno y el workflow que ya existen.
 - Workflow `plan.yml`: en cada PR que cambia `terraform/**` corre `make plan-ci ENV=dev` con la SA `plan` (WIF, solo lectura, `-lock=false`) y publica el plan en el job summary. Se salta en forks y no es un check requerido. Lee las variables de repositorio `PLAN_SERVICE_ACCOUNT` y `GCP_PROJECT_ID`.
 - Raíz `terraform/envs/dev` con estado remoto (prefijo `envs/dev`) y los targets `make plan` y `make apply` (`ENV=dev PROJECT_ID=...`). Dependabot cubre también `envs/dev`.

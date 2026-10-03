@@ -79,7 +79,7 @@ Este repo sigue el estándar personal de `meta-projects/docs/development-standar
 - **Sin `Dockerfile`, `docker-compose.yml`, linter de Python ni cobertura**: no hay código de aplicación. Se reintroducen solo si aparece uno.
 - **Sin job de `build` gateado**: no hay imagen de aplicación que construir ni escanear. El `lock-check` sí existe (`make lock-check`).
 - **Imágenes de herramientas del `Makefile` fijadas por digest y actualizadas a mano**: Dependabot no las ve, y moverlas a un `Dockerfile` solo para que las lea añadiría una capa sin otro uso.
-- **SonarQube**: herramienta personal de desarrollo local, no un gate de CI. `sonar-project.properties` analiza `terraform/` y `.github/`.
+- **SonarQube**: herramienta personal de desarrollo local, no un gate de CI. `sonar-project.properties` analiza `terraform/`. Los workflows de `.github/` quedan fuera: el SonarQube local no trae el analizador de GitHub Actions (su lenguaje `githubactions` no existe en la instancia). Los revisa Trivy.
 
 Cada una de estas exclusiones es deliberada y debe revisarse cuando cambie el alcance del repo.
 
