@@ -6,7 +6,7 @@ Crea en un proyecto de GCP el repositorio de imágenes, los secretos y el servic
 
 - `bootstrap` aplicado y su estado migrado al bucket (`make bootstrap` y `make bootstrap-migrate`).
 - Credenciales de `gcloud` en tu computadora: `gcloud auth application-default login`.
-- Opcional: copia `terraform.tfvars.example` a `terraform.tfvars` para cambiar `region` o la imagen inicial. Ese archivo no se versiona. `project_id` no va ahí: lo pasa `make`.
+- Opcional: copia `terraform.tfvars.example` a `terraform.tfvars` para cambiar `region` o la imagen inicial (nunca `secret_ids` ni `secret_env`: ver "Montar un secreto"). Ese archivo no se versiona. `project_id` no va ahí: lo pasa `make`.
 
 ## Planear y aplicar
 
@@ -24,22 +24,25 @@ make apply ENV=dev PROJECT_ID=<proyecto>   # pide confirmación
 
 Un `plan` justo después de aplicar debe dar "No changes".
 
-**CI ve solo lo versionado.** `terraform.tfvars` no se versiona, así que `deploy.yml` aplica los `default` de las variables. Si tu `terraform.tfvars` local da un `plan` distinto de los defaults (por ejemplo, con `secret_ids`), el primer `deploy` revertiría esa diferencia. Todo valor que `dev` necesite en CI debe ser el `default` de la variable o venir de `TF_VAR_*`.
+**CI ve solo lo versionado.** `terraform.tfvars` no se versiona, así que `deploy.yml` aplica los `default` de las variables. Si tu `terraform.tfvars` local da un `plan` distinto de los defaults (por ejemplo, con otra `region`), el primer `deploy` revertiría esa diferencia. Todo valor que `dev` necesite en CI debe ser el `default` de la variable o venir de `TF_VAR_*`.
 
 El primer `apply` crea el servicio con una imagen de ejemplo (`image`). Después, Terraform **ignora** la imagen, `client` y `client_version`: la imagen la actualiza `gcloud run deploy`, y así un `plan` no la revierte al ejemplo.
 
-## Montar un secreto (en dos pasos)
+## Montar un secreto (dos PRs)
 
-Cloud Run comprueba al desplegar que el secreto tiene al menos una versión y que la SA de runtime puede leerlo. Por eso el montaje va en dos `apply`:
+`secret_ids` y `secret_env` viven en los `default` de [`variables.tf`](variables.tf), no en `terraform.tfvars`: así `plan.yml` y `deploy.yml` ven lo mismo que tú y el PR muestra el secreto que se crea o se quita. Hoy son `[]` y `{}`.
 
-1. En `terraform.tfvars`, define `secret_ids = ["mi-secreto"]` y aplica. Crea el secreto vacío y da `roles/secretmanager.secretAccessor` sobre ese secreto a la SA de runtime.
-2. Carga el valor, sin pasarlo por el código ni por Terraform:
+Cloud Run comprueba al desplegar que el secreto tiene al menos una versión y que la SA de runtime puede leerlo. Por eso el montaje va en dos PRs:
+
+1. **PR 1, crear el secreto.** En `variables.tf`, cambia el `default` de `secret_ids` a `["mi-secreto"]`. Al hacer merge, `deploy.yml` crea el secreto vacío y da `roles/secretmanager.secretAccessor` sobre él a la SA de runtime. Después, carga el valor sin pasarlo por el código ni por Terraform:
    ```bash
    printf '%s' "<valor>" | gcloud secrets versions add mi-secreto --project <proyecto> --data-file=-
    ```
-3. Agrega `secret_env = { MI_VARIABLE = "mi-secreto" }` y aplica de nuevo. El servicio recibe la variable con la versión `latest`.
+2. **PR 2, montarlo.** Cambia el `default` de `secret_env` a `{ MI_VARIABLE = "mi-secreto" }`. Al hacer merge, el servicio recibe la variable con la versión `latest`.
 
-El valor nunca llega al código, al plan ni al estado. Para quitar el secreto, borra esas líneas de `terraform.tfvars` y aplica.
+El valor nunca llega al código, al plan ni al estado.
+
+**Quitar un id de `secret_ids` destruye el secreto y todas sus versiones**, y el valor se pierde porque solo existe en Secret Manager. Para quitarlo, primero quita la variable de `secret_env` (PR 1) y después el id de `secret_ids` (PR 2), y revisa el plan del PR antes de mezclar.
 
 ## Subir y desplegar la imagen
 

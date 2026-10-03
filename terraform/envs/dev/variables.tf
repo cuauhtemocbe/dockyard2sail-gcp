@@ -26,13 +26,13 @@ variable "image" {
 }
 
 variable "secret_ids" {
-  description = "Ids de los secretos que se crean sin valor. Paso 1 del montaje: se aplican, se carga el valor con `gcloud secrets versions add` y solo entonces se montan con secret_env."
+  description = "Ids de los secretos que se crean sin valor. Paso 1 del montaje (un PR): se agregan aquí, se mezcla y se carga el valor con `gcloud secrets versions add`. Se edita el `default`, no un terraform.tfvars: CI solo ve lo versionado. Quitar un id destruye el secreto y sus versiones."
   type        = set(string)
   default     = []
 }
 
 variable "secret_env" {
-  description = "Variables de entorno del servicio que se montan desde Secret Manager: nombre de la variable => id del secreto (debe estar en secret_ids y tener al menos una versión). Paso 2 del montaje."
+  description = "Variables de entorno del servicio que se montan desde Secret Manager: nombre de la variable => id del secreto (debe estar en secret_ids y tener al menos una versión). Paso 2 del montaje (otro PR). Se edita el `default`, no un terraform.tfvars."
   type        = map(string)
   default     = {}
 
