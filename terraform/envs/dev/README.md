@@ -10,12 +10,21 @@ Crea en un proyecto de GCP el repositorio de imágenes, los secretos y el servic
 
 ## Planear y aplicar
 
+El camino normal es CI:
+
+1. En un PR que cambie `terraform/**`, `plan.yml` muestra el plan en el job summary, como la SA `plan` (solo lectura).
+2. Al hacer merge a `main`, `deploy.yml` corre `make apply-ci`: vuelve a planear y aplica ese plan con la SA `apply` (WIF, solo desde `refs/heads/main`). El job summary muestra el plan y el resultado. Si falla, el workflow falla y no reintenta: el siguiente merge o un `workflow_dispatch` sobre `main` lo reintenta.
+
+`make apply` desde tu computadora es la excepción (por ejemplo, si CI no puede correr):
+
 ```bash
 make plan  ENV=dev PROJECT_ID=<proyecto>
 make apply ENV=dev PROJECT_ID=<proyecto>   # pide confirmación
 ```
 
-Un segundo `plan` justo después de aplicar debe dar "No changes". En un PR que cambie `terraform/**`, el workflow `plan.yml` muestra ese mismo plan en el job summary, como la SA `plan` (solo lectura).
+Un `plan` justo después de aplicar debe dar "No changes".
+
+**CI ve solo lo versionado.** `terraform.tfvars` no se versiona, así que `deploy.yml` aplica los `default` de las variables. Si tu `terraform.tfvars` local da un `plan` distinto de los defaults (por ejemplo, con `secret_ids`), el primer `deploy` revertiría esa diferencia. Todo valor que `dev` necesite en CI debe ser el `default` de la variable o venir de `TF_VAR_*`.
 
 El primer `apply` crea el servicio con una imagen de ejemplo (`image`). Después, Terraform **ignora** la imagen, `client` y `client_version`: la imagen la actualiza `gcloud run deploy`, y así un `plan` no la revierte al ejemplo.
 
