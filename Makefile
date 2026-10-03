@@ -30,7 +30,7 @@ ENV_DIR = terraform/envs/$(ENV)
 
 .DEFAULT_GOAL := help
 .PHONY: help fmt fmt-check validate-tf lock-check license-check validate secrets-scan secrets-history trivy install-hooks \
-	bootstrap bootstrap-migrate bootstrap-output plan plan-ci apply _require-project-id _require-adc _require-env
+	bootstrap bootstrap-migrate bootstrap-output plan plan-ci apply apply-ci _require-project-id _require-adc _require-env
 
 fmt: ## Formatear todos los .tf con terraform fmt
 	$(TF) fmt -recursive
@@ -93,6 +93,13 @@ plan-ci: _require-env _require-project-id ## plan para CI (ENV=dev PROJECT_ID=..
 apply: _require-env _require-project-id _require-adc ## terraform apply de un entorno (ENV=dev PROJECT_ID=...); pide confirmación
 	$(TF_ADC) -chdir=$(ENV_DIR) init -input=false -backend-config="bucket=$(PROJECT_ID)-tfstate"
 	$(TF_ADC) -chdir=$(ENV_DIR) apply -var project_id=$(PROJECT_ID)
+
+apply-ci: _require-env _require-project-id ## apply para CI (ENV=dev PROJECT_ID=...): plan -out y apply de ese plan, con token en GOOGLE_OAUTH_ACCESS_TOKEN
+	@test -n "$$GOOGLE_OAUTH_ACCESS_TOKEN" || { echo "Falta GOOGLE_OAUTH_ACCESS_TOKEN"; exit 1; }
+	$(TF_TOKEN) -chdir=$(ENV_DIR) init -input=false -backend-config="bucket=$(PROJECT_ID)-tfstate"
+	$(TF_TOKEN) -chdir=$(ENV_DIR) plan -input=false -lock-timeout=60s -no-color -out=tfplan -var project_id=$(PROJECT_ID)
+	@# Un plan guardado no pide confirmación. El archivo puede traer valores sensibles: se borra siempre (tfplan está en .gitignore).
+	$(TF_TOKEN) -chdir=$(ENV_DIR) apply -input=false -lock-timeout=60s -no-color tfplan; rc=$$?; rm -f $(ENV_DIR)/tfplan; exit $$rc
 
 secrets-history: ## Escanear todo el historial de git con gitleaks (lo que corre el job de CI)
 	docker run --rm -v "$(CURDIR):/repo" -w /repo $(GITLEAKS_IMAGE) detect --redact -v

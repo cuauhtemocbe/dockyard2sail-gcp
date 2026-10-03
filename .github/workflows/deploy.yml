@@ -1,0 +1,66 @@
+name: deploy
+
+# Aplica `terraform apply` de dev al hacer merge a main. Se autentica como la SA `apply`, que solo
+# se obtiene desde refs/heads/main (lo impone el provider de WIF, no este workflow): una ejecución
+# lanzada desde otra rama falla en el paso de autenticación.
+#
+# Un solo job: `plan -out` y `apply` de ese plan, para aplicar exactamente lo que se muestra.
+# Solo `push` y `workflow_dispatch`, nunca `pull_request_target`. La compuerta es el PR: `main`
+# exige checks y `enforce_admins`. El build y el push de la imagen viven en dockyard2sail-py.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "terraform/**"
+      - Makefile
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Un apply a la vez por entorno, y sin cancelar uno a medias: cortarlo dejaría el estado parcial.
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Authenticate as the apply SA
+        id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.APPLY_SERVICE_ACCOUNT }}
+          token_format: access_token
+          create_credentials_file: false
+          access_token_scopes: https://www.googleapis.com/auth/cloud-platform
+
+      # `shell: bash` activa pipefail: sin él, un `apply` fallido quedaría oculto tras `tee`.
+      - name: Terraform apply (dev)
+        shell: bash
+        env:
+          GOOGLE_OAUTH_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+        run: make apply-ci ENV=dev PROJECT_ID="${PROJECT_ID}" 2>&1 | tee apply.txt
+
+      - name: Publish the plan and result in the job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## terraform apply (dev)'
+            echo '```'
+            tail -c 60000 apply.txt 2>/dev/null || echo 'Sin salida.'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
