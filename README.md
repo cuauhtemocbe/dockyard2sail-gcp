@@ -51,7 +51,6 @@ flowchart LR
     gh -->|token OIDC| wif
     wif -->|impersona SA de despliegue| gh
     gh -->|terraform apply| gcs
-    gh -->|terraform apply:<br/>crea y configura los recursos| gcp
     app -->|docker push| ar
     app -->|gcloud run deploy| run
     ar -->|imagen| run
@@ -61,7 +60,7 @@ flowchart LR
 
 La autenticación no guarda ningún secreto en GitHub: el workflow presenta un token OIDC efímero, Workload Identity Federation lo valida contra el repositorio autorizado y entrega credenciales de corta vida para impersonar la service account de despliegue.
 
-Los workflows de este repo solo corren `terraform plan` (en PRs) y `terraform apply` (al hacer merge a `main`): no construyen ni suben la imagen. Eso lo hace el repo de la aplicación, que sube la imagen a Artifact Registry y despliega con `gcloud run deploy`. Terraform ignora la imagen del servicio para que un `plan` no la revierta.
+Ningún workflow de este repo construye ni sube la imagen: `plan.yml` corre `terraform plan` en cada PR y `deploy.yml` corre `terraform apply` al hacer merge a `main`. La imagen la maneja el repo de la aplicación, que sube la imagen a Artifact Registry y despliega con `gcloud run deploy`. Terraform ignora la imagen del servicio para que un `plan` no la revierta.
 
 ## Estructura prevista
 
