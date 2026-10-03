@@ -4,12 +4,12 @@ variable "project_id" {
 }
 
 variable "name" {
-  description = "Nombre del servicio de Cloud Run. La SA de runtime se llama \"<name>-runtime\"."
+  description = "Nombre del servicio de Cloud Run (entre 4 y 22 caracteres). La SA de runtime se llama \"<name>-runtime\"."
   type        = string
 
   validation {
-    condition     = can(regex("^[a-z][a-z0-9-]{2,22}[a-z0-9]$", var.name))
-    error_message = "name debe tener entre 4 y 24 caracteres: minúsculas, números y guiones, empezando con una letra. El límite deja espacio para el sufijo -runtime en el id de la SA (30 caracteres como máximo)."
+    condition     = can(regex("^[a-z][a-z0-9-]{2,20}[a-z0-9]$", var.name))
+    error_message = "name debe tener entre 4 y 22 caracteres: minúsculas, números y guiones, empezando con una letra. El límite deja espacio para el sufijo -runtime en el id de la SA (30 caracteres como máximo)."
   }
 }
 
