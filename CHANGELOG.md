@@ -18,6 +18,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ### Fixed
 
 - `cloud-run-service`: `name` acepta de 4 a 22 caracteres (antes 24). El id de la SA de runtime es `<name>-runtime` y GCP limita los ids a 30: un nombre de 23 o 24 caracteres pasaba `validate` y el `plan`, y fallaba al crear la SA durante el `apply`. `tests/name.tftest.hcl` (`terraform test` con `mock_provider`) comprueba que 22 caracteres pasan y 23 fallan (#42).
+- `plan.yml`: el paso "Terraform plan (dev)" usa `shell: bash`. Sin él, GitHub corre `bash -e {0}` sin `pipefail`, y en `make plan-ci ... 2>&1 | tee plan.txt` el código de salida era el de `tee` (0): un plan fallido dejaba el job y el check en verde. Igual que ya hacía `deploy.yml` (#41).
 
 ### Added
 
@@ -43,7 +44,3 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - CI en GitHub Actions con jobs paralelos: `fmt`, `validate`, `license-check` y `trivy-fs` (vulnerabilidades, misconfiguraciones de IaC y secretos). Actions pineadas por commit SHA y `permissions: contents: read`.
 - Dependabot para `github-actions`, con updates semanales agrupados.
 - `CLAUDE.md` con las reglas no negociables de infraestructura y el flujo de trabajo para agentes.
-
-### Fixed
-
-- `plan.yml`: el paso "Terraform plan (dev)" usa `shell: bash`. Sin él, GitHub corre `bash -e {0}` sin `pipefail`, y en `make plan-ci ... 2>&1 | tee plan.txt` el código de salida era el de `tee` (0): un plan fallido dejaba el job y el check en verde. Igual que ya hacía `deploy.yml` (#41).
