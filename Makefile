@@ -26,11 +26,14 @@ TF_ADC = docker run --rm $$([ -t 0 ] && echo -it) -u $$(id -u):$$(id -g) -e HOME
 TF_TOKEN = docker run --rm -u $$(id -u):$$(id -g) -e HOME=/tmp -e GOOGLE_OAUTH_ACCESS_TOKEN \
 	-v "$(CURDIR):/workspace" -w /workspace $(TERRAFORM_IMAGE)
 BOOTSTRAP_DIR = terraform/bootstrap
+# Valores de bootstrap que en local vienen de terraform.tfvars (no versionado) y en CI se pasan por -var.
+# GITHUB_REPOSITORY y GITHUB_REPOSITORY_ID los define el workflow; REGION es la de terraform.tfvars.example.
+REGION ?= us-central1
 ENV_DIR = terraform/envs/$(ENV)
 
 .DEFAULT_GOAL := help
 .PHONY: help fmt fmt-check validate-tf lock-check license-check validate secrets-scan secrets-history trivy install-hooks \
-	bootstrap bootstrap-migrate bootstrap-output plan plan-ci apply apply-ci _require-project-id _require-adc _require-env
+	bootstrap bootstrap-migrate bootstrap-output plan plan-ci plan-bootstrap-ci drift-ci apply apply-ci _require-project-id _require-adc _require-env
 
 fmt: ## Formatear todos los .tf con terraform fmt
 	$(TF) fmt -recursive
@@ -89,6 +92,22 @@ plan-ci: _require-env _require-project-id ## plan para CI (ENV=dev PROJECT_ID=..
 	@test -n "$$GOOGLE_OAUTH_ACCESS_TOKEN" || { echo "Falta GOOGLE_OAUTH_ACCESS_TOKEN"; exit 1; }
 	$(TF_TOKEN) -chdir=$(ENV_DIR) init -input=false -backend-config="bucket=$(PROJECT_ID)-tfstate"
 	$(TF_TOKEN) -chdir=$(ENV_DIR) plan -input=false -lock=false -no-color -var project_id=$(PROJECT_ID)
+
+plan-bootstrap-ci: _require-project-id ## plan de terraform/bootstrap para CI (PROJECT_ID=... GITHUB_REPOSITORY=owner/repo GITHUB_REPOSITORY_ID=...): genera backend.tf, sin lock de estado
+	@test -n "$$GOOGLE_OAUTH_ACCESS_TOKEN" || { echo "Falta GOOGLE_OAUTH_ACCESS_TOKEN"; exit 1; }
+	@test -n "$(GITHUB_REPOSITORY)" || { echo "Falta GITHUB_REPOSITORY (owner/repo)"; exit 1; }
+	@test -n "$(GITHUB_REPOSITORY_ID)" || { echo "Falta GITHUB_REPOSITORY_ID: sin él el plan mostraría un cambio falso en el provider de WIF"; exit 1; }
+	sed 's/<PROJECT_ID>/$(PROJECT_ID)/' $(BOOTSTRAP_DIR)/backend.tf.example > $(BOOTSTRAP_DIR)/backend.tf
+	$(TF_TOKEN) -chdir=$(BOOTSTRAP_DIR) init -input=false
+	$(TF_TOKEN) -chdir=$(BOOTSTRAP_DIR) plan -input=false -lock=false -no-color -var project_id=$(PROJECT_ID) -var region=$(REGION) \
+		-var github_repository=$(GITHUB_REPOSITORY) -var github_repository_id=$(GITHUB_REPOSITORY_ID)
+
+# make devuelve 2 ante cualquier receta fallida, así que no sirve para distinguir drift (2 de terraform) de
+# error (1). El código real se imprime en una línea que el workflow lee.
+drift-ci: _require-env _require-project-id ## plan -detailed-exitcode para CI (ENV=dev PROJECT_ID=...): imprime terraform-plan-exitcode=N (0 sin cambios, 1 error, 2 drift)
+	@test -n "$$GOOGLE_OAUTH_ACCESS_TOKEN" || { echo "Falta GOOGLE_OAUTH_ACCESS_TOKEN"; exit 1; }
+	$(TF_TOKEN) -chdir=$(ENV_DIR) init -input=false -backend-config="bucket=$(PROJECT_ID)-tfstate" || { echo "terraform-plan-exitcode=1"; exit 1; }
+	$(TF_TOKEN) -chdir=$(ENV_DIR) plan -input=false -lock=false -no-color -detailed-exitcode -var project_id=$(PROJECT_ID); rc=$$?; echo "terraform-plan-exitcode=$$rc"; exit $$rc
 
 apply: _require-env _require-project-id _require-adc ## terraform apply de un entorno (ENV=dev PROJECT_ID=...); pide confirmación
 	$(TF_ADC) -chdir=$(ENV_DIR) init -input=false -backend-config="bucket=$(PROJECT_ID)-tfstate"
