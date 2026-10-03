@@ -38,7 +38,9 @@ jobs:
           create_credentials_file: false
           access_token_scopes: https://www.googleapis.com/auth/cloud-platform
 
+      # `shell: bash` activa pipefail: sin él, un `plan` fallido quedaría oculto tras `tee`.
       - name: Terraform plan (dev)
+        shell: bash
         env:
           GOOGLE_OAUTH_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
           PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
