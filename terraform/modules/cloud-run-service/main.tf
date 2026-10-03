@@ -31,13 +31,15 @@ resource "google_cloud_run_v2_service" "this" {
   template {
     service_account = google_service_account.runtime.email
 
-    # Con 0 no se escribe el bloque: el provider no guarda el valor 0 en el estado y cada plan
-    # propondría agregar `scaling { min_instance_count = 0 }`. El default de Cloud Run ya es 0.
+    # El provider no guarda `min_instance_count = 0` en el estado: con 0 se pasa null para que
+    # cada plan no proponga agregarlo (el default de Cloud Run ya es 0). El bloque se escribe solo
+    # si hay algo que fijar.
     dynamic "scaling" {
-      for_each = var.min_instances > 0 ? [var.min_instances] : []
+      for_each = var.min_instances > 0 || var.max_instances != null ? [1] : []
 
       content {
-        min_instance_count = scaling.value
+        min_instance_count = var.min_instances > 0 ? var.min_instances : null
+        max_instance_count = var.max_instances
       }
     }
 
