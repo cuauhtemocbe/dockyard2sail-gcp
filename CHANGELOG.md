@@ -15,6 +15,11 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - README, `CLAUDE.md` y `terraform/envs/dev/README.md`: el `apply` de `dev` desde CI es el camino normal y `make apply` local la excepción. Se documenta que CI ve solo lo versionado (`terraform.tfvars` no). El texto "build + push + deploy" del README pasa a "`terraform apply` al hacer merge; la imagen se despliega desde el repo de la aplicación" (#34).
 - El `Makefile` anota la versión de Terraform de la imagen fijada (v1.16.4) y que sus imágenes se actualizan a mano.
 
+### Fixed
+
+- `cloud-run-service`: `name` acepta de 4 a 22 caracteres (antes 24). El id de la SA de runtime es `<name>-runtime` y GCP limita los ids a 30: un nombre de 23 o 24 caracteres pasaba `validate` y el `plan`, y fallaba al crear la SA durante el `apply`. `tests/name.tftest.hcl` (`terraform test` con `mock_provider`) comprueba que 22 caracteres pasan y 23 fallan (#42).
+- `plan.yml`: el paso "Terraform plan (dev)" usa `shell: bash`. Sin él, GitHub corre `bash -e {0}` sin `pipefail`, y en `make plan-ci ... 2>&1 | tee plan.txt` el código de salida era el de `tee` (0): un plan fallido dejaba el job y el check en verde. Igual que ya hacía `deploy.yml` (#41).
+
 ### Added
 
 - Workflow `deploy.yml` y target `make apply-ci`: al hacer merge a `main` con cambios en `terraform/**`, el `Makefile` o el propio workflow (o con `workflow_dispatch`), aplica `envs/dev` con la SA `apply` por WIF. Un solo job hace `plan -out` y `apply` de ese plan, y publica ambos en el job summary. `concurrency` por entorno sin cancelar. Verificado de extremo a extremo con el cambio de la descripción del repositorio de Artifact Registry (0 added, 1 changed, 0 destroyed) y `make plan ENV=dev` sin cambios después. El build y el push de la imagen no se hacen aquí: viven en `dockyard2sail-py` (#29).
@@ -39,7 +44,3 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - CI en GitHub Actions con jobs paralelos: `fmt`, `validate`, `license-check` y `trivy-fs` (vulnerabilidades, misconfiguraciones de IaC y secretos). Actions pineadas por commit SHA y `permissions: contents: read`.
 - Dependabot para `github-actions`, con updates semanales agrupados.
 - `CLAUDE.md` con las reglas no negociables de infraestructura y el flujo de trabajo para agentes.
-
-### Fixed
-
-- `plan.yml`: el paso "Terraform plan (dev)" usa `shell: bash`. Sin él, GitHub corre `bash -e {0}` sin `pipefail`, y en `make plan-ci ... 2>&1 | tee plan.txt` el código de salida era el de `tee` (0): un plan fallido dejaba el job y el check en verde. Igual que ya hacía `deploy.yml` (#41).
