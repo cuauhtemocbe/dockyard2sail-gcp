@@ -3,7 +3,7 @@
 **Spec**: [deploy.md](./deploy.md)  
 **Issue**: #29 (T1 a T5: #30 a #34)  
 **Created**: 2026-10-02
-**Status**: approved
+**Status**: completed
 
 ## Components
 
@@ -54,11 +54,11 @@
 
 ## Milestones
 
-- [ ] M1: `make validate` y `make trivy` pasan con `apply-ci` y `deploy.yml`.
-- [ ] M2: el merge del PR 1 dispara `deploy.yml` y termina en verde con 0 cambios.
-- [ ] M3: la prueba negativa (`workflow_dispatch` desde otra rama) falla al autenticarse.
-- [ ] M4: un cambio real en `envs/dev` se aplica tras el merge y `make plan ENV=dev` da 0 cambios.
-- [ ] M5: documentación y hoja de ruta actualizadas con lo verificado.
+- [x] M1: `make validate` y `make trivy` pasan con `apply-ci` y `deploy.yml`.
+- [x] M2: el merge del PR 1 dispara `deploy.yml` y termina en verde con 0 cambios.
+- [x] M3: la prueba negativa (`workflow_dispatch` desde otra rama) falla al autenticarse.
+- [x] M4: un cambio real en `envs/dev` se aplica tras el merge y `make plan ENV=dev` da 0 cambios.
+- [x] M5: documentación y hoja de ruta actualizadas con lo verificado.
 
 ## Tasks
 

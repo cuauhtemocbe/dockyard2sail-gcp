@@ -7,7 +7,7 @@
 
 Template de infraestructura como código para desplegar una API en **Google Cloud Run** con Terraform, sin llaves de servicio y con CI/CD desde GitHub Actions. Es el hermano de infraestructura de [`dockyard2sail-py`](https://github.com/cuauhtemocbe/dockyard2sail-py) y [`dockyard2sail-ts`](https://github.com/cuauhtemocbe/dockyard2sail-ts): esos dos resuelven "cómo arranco el código", este resuelve "cómo lo llevo a producción en GCP".
 
-> **Estado: en construcción.** Existen el módulo [`terraform/bootstrap/`](terraform/bootstrap/README.md) (estado remoto, Workload Identity Federation y service accounts de CI), los módulos `cloud-run-service`, `artifact-registry` y `secrets`, el entorno [`terraform/envs/dev`](terraform/envs/dev/README.md) y el workflow `plan.yml`, todos verificados en un proyecto real. El resto (entorno `prod`, `budget-alert`, el workflow de `deploy` en `main`) sigue en diseño. Las secciones marcadas como *planeado* se irán convirtiendo en realidad y este documento se actualizará con ellas.
+> **Estado: en construcción.** Existen el módulo [`terraform/bootstrap/`](terraform/bootstrap/README.md) (estado remoto, Workload Identity Federation y service accounts de CI), los módulos `cloud-run-service`, `artifact-registry` y `secrets`, el entorno [`terraform/envs/dev`](terraform/envs/dev/README.md) y los workflows `plan.yml` (plan en cada PR) y `deploy.yml` (`terraform apply` de `dev` al hacer merge a `main`), todos verificados en un proyecto real. El resto (entorno `prod`, `budget-alert`) sigue en diseño. Las secciones marcadas como *planeado* se irán convirtiendo en realidad y este documento se actualizará con ellas.
 
 ## Problema
 
@@ -15,7 +15,7 @@ Desplegar un contenedor en GCP por primera vez suele terminar en clics en la con
 
 ## Alcance
 
-**Incluye** (estado remoto, Workload Identity Federation y las service accounts de CI ya existen en `terraform/bootstrap/`; lo demás es planeado):
+**Incluye** (existen el estado remoto, Workload Identity Federation, las service accounts de CI, los módulos, el entorno `dev` y el pipeline `plan`/`apply`; el entorno `prod` y el presupuesto con alerta son planeados):
 
 - **Cloud Run** como destino del contenedor, con servicio, revisiones y tráfico definidos en Terraform.
 - **Artifact Registry** para las imágenes, con política de limpieza de versiones antiguas.
@@ -25,7 +25,7 @@ Desplegar un contenedor en GCP por primera vez suele terminar en clics en la con
 - **Estado remoto** de Terraform en Cloud Storage, con versionado activado.
 - **Dos entornos** (`dev` y `prod`) que reutilizan los mismos módulos.
 - **Presupuesto con alerta** para que un error de configuración no se convierta en una factura.
-- **Pipeline de GitHub Actions**: `terraform fmt`/`validate`/`plan` en cada PR, y build + push + deploy al hacer merge a `main`.
+- **Pipeline de GitHub Actions**: `terraform fmt`/`validate`/`plan` en cada PR, y `terraform apply` al hacer merge a `main`; la imagen se despliega desde el repo de la aplicación.
 
 **No incluye (por ahora):**
 
@@ -75,7 +75,7 @@ Lo marcado como planeado todavía no existe.
 │   └── envs/
 │       ├── dev/
 │       └── prod/           # planeado
-├── .github/workflows/      # plan en PR (existe); deploy en main (planeado)
+├── .github/workflows/      # plan en PR y apply en main (existen)
 ├── docs/                   # decisiones (ADRs) y guía de arranque
 ├── Makefile                # fmt, validate, plan, apply por entorno
 └── README.md
@@ -108,7 +108,7 @@ Para `terraform/bootstrap/` (los prerrequisitos completos están en [su README](
 
 ## Cómo usarlo
 
-Los pasos 1 y 2 ya funcionan. El paso 3 es planeado.
+Los tres pasos ya funcionan.
 
 ```bash
 # 1. Crear el estado remoto y la federación de identidad (una sola vez)
@@ -116,11 +116,12 @@ Los pasos 1 y 2 ya funcionan. El paso 3 es planeado.
 make bootstrap PROJECT_ID=mi-proyecto-dev
 make bootstrap-migrate PROJECT_ID=mi-proyecto-dev
 
-# 2. Planear y aplicar un entorno. Montar secretos y subir la imagen: terraform/envs/dev/README.md
-make plan  ENV=dev PROJECT_ID=mi-proyecto-dev
-make apply ENV=dev PROJECT_ID=mi-proyecto-dev
+# 2. Planear un entorno desde tu computadora. Montar secretos y subir la imagen: terraform/envs/dev/README.md
+make plan ENV=dev PROJECT_ID=mi-proyecto-dev
 
-# 3. A partir de aquí, cada merge a main despliega vía GitHub Actions (planeado)
+# 3. Aplicar: abre un PR (plan.yml muestra el plan) y haz merge a main.
+#    deploy.yml corre `terraform apply` de dev con la SA apply. `make apply` local es la excepción.
+make apply ENV=dev PROJECT_ID=mi-proyecto-dev   # solo si CI no puede
 ```
 
 ## Hoja de ruta
@@ -129,7 +130,7 @@ make apply ENV=dev PROJECT_ID=mi-proyecto-dev
 - [x] Módulo `cloud-run-service` con el ejemplo de `dockyard2sail-py`
 - [x] Módulos `artifact-registry` y `secrets`
 - [x] Workflow de `plan` en PR
-- [ ] Workflow de `deploy` en `main`
+- [x] Workflow de `deploy` en `main` (`terraform apply` de `dev`; la imagen se despliega desde el repo de la aplicación)
 - [x] Entorno `dev`
 - [ ] Entorno `prod`
 - [ ] Módulo `budget-alert`
