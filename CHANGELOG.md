@@ -16,6 +16,8 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - El `Makefile` anota la versión de Terraform de la imagen fijada (v1.16.4) y que sus imágenes se actualizan a mano.
 - `envs/dev`: `secret_ids` y `secret_env` se definen en los `default` de `variables.tf`, no en `terraform.tfvars`. Con `terraform.tfvars` (no versionado), el siguiente `deploy` destruía el secreto y sus versiones y quitaba la variable del servicio, porque CI aplica los `default`. El montaje de un secreto pasa a ser dos PRs (crear y cargar el valor; montar), el README advierte que quitar un id destruye el secreto, y `terraform.tfvars.example` ya no documenta estas variables. Los `default` siguen siendo `[]` y `{}`: `dev` no tiene secretos (#43).
 
+- README: el diagrama de "Arquitectura prevista" ya no muestra a GitHub Actions de este repo haciendo `docker push` ni creando una revisión de Cloud Run; esas dos flechas salen del repo de la aplicación (`dockyard2sail-py`), y este repo solo hace `terraform apply`. El texto bajo el diagrama aclara el reparto (#40).
+
 ### Fixed
 
 - `cloud-run-service`: `name` acepta de 4 a 22 caracteres (antes 24). El id de la SA de runtime es `<name>-runtime` y GCP limita los ids a 30: un nombre de 23 o 24 caracteres pasaba `validate` y el `plan`, y fallaba al crear la SA durante el `apply`. `tests/name.tftest.hcl` (`terraform test` con `mock_provider`) comprueba que 22 caracteres pasan y 23 fallan (#42).

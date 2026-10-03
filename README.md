@@ -37,7 +37,8 @@ Desplegar un contenedor en GCP por primera vez suele terminar en clics en la con
 
 ```mermaid
 flowchart LR
-    dev([Desarrollador]) -->|PR / merge| gh[GitHub Actions]
+    dev([Desarrollador]) -->|PR / merge| gh[GitHub Actions<br/>este repo]
+    app[Repo de la aplicación<br/>dockyard2sail-py<br/>fuera de este repo]
 
     subgraph gcp["Proyecto de GCP"]
         wif[Workload Identity<br/>Federation]
@@ -49,15 +50,18 @@ flowchart LR
 
     gh -->|token OIDC| wif
     wif -->|impersona SA de despliegue| gh
-    gh -->|docker push| ar
     gh -->|terraform apply| gcs
-    gh -->|nueva revisión| run
+    gh -->|terraform apply:<br/>crea y configura los recursos| gcp
+    app -->|docker push| ar
+    app -->|gcloud run deploy| run
     ar -->|imagen| run
     sm -->|secretos en runtime| run
     user([Usuario]) -->|HTTPS| run
 ```
 
 La autenticación no guarda ningún secreto en GitHub: el workflow presenta un token OIDC efímero, Workload Identity Federation lo valida contra el repositorio autorizado y entrega credenciales de corta vida para impersonar la service account de despliegue.
+
+Los workflows de este repo solo corren `terraform plan` (en PRs) y `terraform apply` (al hacer merge a `main`): no construyen ni suben la imagen. Eso lo hace el repo de la aplicación, que sube la imagen a Artifact Registry y despliega con `gcloud run deploy`. Terraform ignora la imagen del servicio para que un `plan` no la revierta.
 
 ## Estructura prevista
 
