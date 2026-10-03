@@ -43,7 +43,7 @@
 |--------|------------|
 | El primer `apply` desde CI falla por un permiso que la SA `apply` no tiene (nunca ha aplicado `envs/dev`; solo ha obtenido el token). | Es la prueba de integración. Si falla, el error nombra el permiso y se corrige en `bootstrap` en un PR aparte, sin ampliar roles por adelantado. |
 | El PR de `deploy.yml` se dispara a sí mismo al mergear con un `apply` real. | Es inocuo si `main` y el estado coinciden: el plan debe dar 0 cambios. Se corre `make plan ENV=dev` antes de mergear para saberlo. Si da cambios, se resuelven antes. |
-| `terraform.tfvars` local distinto de los defaults: CI aplicaría los defaults. | Hoy no tiene valores activos. Se confirma en el mismo `make plan` previo y se documenta la regla. |
+| `terraform.tfvars` local distinto de los defaults: CI aplicaría los defaults. | Hoy no tiene valores activos. Se confirma en el mismo `make plan` previo y se documenta la regla. El caso de los secretos queda cerrado en #43: `secret_ids` y `secret_env` se editan en los `default` de `variables.tf`, no en `terraform.tfvars`. |
 | Entre el `plan` del PR y el merge puede entrar otro cambio. | El job vuelve a planear y aplica ese plan, no el del PR. El summary lo muestra. |
 | Un fallo a medias deja `dev` parcialmente aplicado. | Terraform conserva lo creado en el estado, el workflow falla y el siguiente merge o `workflow_dispatch` reintenta. Sin reintentos automáticos. |
 
