@@ -9,6 +9,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Changed
 
+- `ci.yml`: corre en `push` solo a `main` (antes a cualquier rama), así que un commit de un PR genera un run y no dos. Todos los jobs tienen `timeout-minutes: 10`. El job `trivy-fs` (mismo nombre, check requerido) ejecuta `make trivy` en lugar de `trivy-action`: misma imagen fijada por digest (v0.75.0) y mismos flags que en local. Ya no escanea secretos, que cubre `gitleaks` (#49).
 - `make trivy` corre Trivy en Docker (imagen `TRIVY_IMAGE` fijada por digest, v0.75.0) con la base de vulnerabilidades cacheada en `~/.cache/trivy`, y acepta `SEVERITY` (por defecto `CRITICAL,HIGH`). El hook `pre-push` ya no invoca el binario: llama a `make trivy SEVERITY=CRITICAL`, así que `git push` funciona sin Trivy instalado y los flags viven solo en el `Makefile` (#6).
 - La SA `apply` de bootstrap ya no tiene `roles/iam.serviceAccountUser` sobre el proyecto: lo recibe solo sobre la SA de runtime, con el binding que crea `cloud-run-service` para su nueva variable `deployers` (`envs/dev` pasa la SA `apply`). `iam.serviceAccountAdmin` sigue sobre el proyecto, porque hace falta para crear la SA de runtime. `TF_ADC` pasa `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` al contenedor.
 - Decisión sobre la protección de `main`: `enforce_admins` queda en `true` (sin excepción para el owner). Documentado en `CLAUDE.md`, el README y `terraform/bootstrap/README.md`.
