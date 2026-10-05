@@ -7,9 +7,9 @@ region     = "us-central1"
 # Repositorio que puede usar las service accounts de CI.
 github_repository = "mi-usuario/mi-repositorio"
 
-# Recomendado: ID numérico del repositorio. Se obtiene con
+# Obligatorio: ID numérico del repositorio. Se obtiene con
 #   gh api repos/mi-usuario/mi-repositorio --jq .id
-# github_repository_id = "123456789"
+github_repository_id = "123456789"
 
 # Opcionales (valores por defecto):
 # state_version_retention_days = 90

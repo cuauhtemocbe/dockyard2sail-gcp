@@ -29,12 +29,11 @@ variable "github_repository" {
 }
 
 variable "github_repository_id" {
-  description = "ID numérico del repositorio de GitHub. Si se define, el provider de WIF también lo exige. Recomendado: el ID no cambia si el repositorio se borra y otra persona crea uno con el mismo nombre."
+  description = "ID numérico del repositorio de GitHub (`gh api repos/<owner>/<repo> --jq .id`). El provider de WIF lo exige además del nombre: el ID no cambia, pero el nombre de un repositorio borrado lo puede reutilizar otra persona."
   type        = string
-  default     = null
 
   validation {
-    condition     = var.github_repository_id == null || can(regex("^[0-9]+$", var.github_repository_id))
+    condition     = can(regex("^[0-9]+$", var.github_repository_id))
     error_message = "github_repository_id debe ser un número, por ejemplo 123456789."
   }
 }

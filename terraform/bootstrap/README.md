@@ -30,7 +30,7 @@ Los roles de cada SA y por qué se eligieron están en [`specs/bootstrap-plan.md
    ```bash
    cp terraform/bootstrap/terraform.tfvars.example terraform/bootstrap/terraform.tfvars
    ```
-   Pon el ID numérico del repositorio en `github_repository_id` (`gh api repos/<owner>/<repo> --jq .id`). Es opcional, pero recomendado: el nombre de un repositorio borrado lo puede reutilizar otra persona, el ID no.
+   Pon el ID numérico del repositorio en `github_repository_id` (`gh api repos/<owner>/<repo> --jq .id`). Es obligatorio: sin el ID, la confianza depende solo del nombre, y si el repositorio se borra otra persona puede crear uno igual y obtener las service accounts; el ID no se reutiliza.
 
 ## Ejecución única
 

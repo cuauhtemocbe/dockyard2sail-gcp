@@ -42,7 +42,7 @@ Lo ejecuta una persona con permisos de administrador, desde su computadora, una 
 **Federación de identidad (WIF)**
 
 - [x] Crea un pool y un provider OIDC para GitHub (emisor `https://token.actions.githubusercontent.com`). El provider solo acepta tokens del repositorio indicado en `github_repository`.
-- [x] Si se define `github_repository_id` (el ID numérico del repositorio), el provider también lo exige. El nombre de un repositorio borrado puede reutilizarlo otra persona; el ID no. Es opcional y recomendado.
+- [x] El provider exige `github_repository_id` (el ID numérico del repositorio), además del nombre. El nombre de un repositorio borrado puede reutilizarlo otra persona; el ID no. Es obligatorio.
 
 **Service accounts**
 
