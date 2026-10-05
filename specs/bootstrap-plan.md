@@ -94,7 +94,7 @@ Cada una se comprueba en la tarea indicada.
 ### Foundation (Build First)
 
 - [x] **T1**: Esqueleto del módulo
-  - **Acceptance**: `terraform/bootstrap/` con versiones fijadas con `~>`, provider con `user_project_override = true` y `billing_project`, variables (con `github_repository_id` opcional) y APIs habilitadas con `disable_on_destroy = false`. Si falta `project_id` o `github_repository`, el `plan` falla con un mensaje claro.
+  - **Acceptance**: `terraform/bootstrap/` con versiones fijadas con `~>`, provider con `user_project_override = true` y `billing_project`, variables (`github_repository_id` obligatoria) y APIs habilitadas con `disable_on_destroy = false`. Si falta `project_id`, `github_repository` o `github_repository_id`, el `plan` falla con un mensaje claro.
   - **Files**: `terraform/bootstrap/versions.tf`, `variables.tf`, `apis.tf`, `terraform.tfvars.example`
   - **Tests**: `make validate`, `make trivy` y un `plan` sin `project_id` que debe fallar.
   - **Effort**: S
@@ -115,9 +115,9 @@ Cada una se comprueba en la tarea indicada.
 ### Slice 2: `plan` desde un PR
 
 - [x] **T4**: Workload Identity Federation
-  - **Acceptance**: pool y provider OIDC que solo aceptan el repositorio configurado (y su ID si `github_repository_id` está definido). Atributos mapeados: `repository`, `ref`, `repo_ref` y `repository_id`. Output `workload_identity_provider` con el nombre completo.
+  - **Acceptance**: pool y provider OIDC que solo aceptan el repositorio configurado y su ID (`github_repository_id`). Atributos mapeados: `repository`, `ref`, `repo_ref` y `repository_id`. Output `workload_identity_provider` con el nombre completo.
   - **Files**: `terraform/bootstrap/wif.tf`, `outputs.tf`
-  - **Tests**: `make validate` y `make trivy`; en el `plan`, la condición del provider contiene el repositorio y no contiene `repository_id` cuando la variable está vacía; un caso con la variable definida.
+  - **Tests**: `make validate` y `make trivy`; en el `plan`, la condición del provider contiene siempre el repositorio y su ID; sin `github_repository_id` el `plan` falla por variable requerida, y con un valor no numérico falla por la validación.
   - **Effort**: M
 - [x] **T5**: SA `plan`
   - **Acceptance**: SA con los roles de lectura de la tabla de permisos y `objectViewer` y `legacyBucketReader` solo sobre el bucket. Cualquier ref del repositorio autorizado puede usarla. Output con su correo.
