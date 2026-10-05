@@ -7,7 +7,7 @@
 
 Template de infraestructura como código para desplegar una API en **Google Cloud Run** con Terraform, sin llaves de servicio y con CI/CD desde GitHub Actions. Es el hermano de infraestructura de [`dockyard2sail-py`](https://github.com/cuauhtemocbe/dockyard2sail-py) y [`dockyard2sail-ts`](https://github.com/cuauhtemocbe/dockyard2sail-ts): esos dos resuelven "cómo arranco el código", este resuelve "cómo lo llevo a producción en GCP".
 
-> **Estado: en construcción.** Existen el módulo [`terraform/bootstrap/`](terraform/bootstrap/README.md) (estado remoto, Workload Identity Federation y service accounts de CI), los módulos `cloud-run-service`, `artifact-registry` y `secrets`, el entorno [`terraform/envs/dev`](terraform/envs/dev/README.md) y el workflow `plan.yml`, todos verificados en un proyecto real. El resto (entorno `prod`, `budget-alert`, el workflow de `deploy` en `main`) sigue en diseño. Las secciones marcadas como *planeado* se irán convirtiendo en realidad y este documento se actualizará con ellas.
+> **Estado: en construcción.** Existen el módulo [`terraform/bootstrap/`](terraform/bootstrap/README.md) (estado remoto, Workload Identity Federation y service accounts de CI), los módulos `cloud-run-service`, `artifact-registry` y `secrets`, el entorno [`terraform/envs/dev`](terraform/envs/dev/README.md) y los workflows `plan.yml` (plan en cada PR) y `deploy.yml` (`terraform apply` de `dev` al hacer merge a `main`), todos verificados en un proyecto real. El resto (entorno `prod`, `budget-alert`) sigue en diseño. Las secciones marcadas como *planeado* se irán convirtiendo en realidad y este documento se actualizará con ellas.
 
 ## Problema
 
@@ -15,7 +15,7 @@ Desplegar un contenedor en GCP por primera vez suele terminar en clics en la con
 
 ## Alcance
 
-**Incluye** (estado remoto, Workload Identity Federation y las service accounts de CI ya existen en `terraform/bootstrap/`; lo demás es planeado):
+**Incluye** (existen el estado remoto, Workload Identity Federation, las service accounts de CI, los módulos, el entorno `dev` y el pipeline `plan`/`apply`; el entorno `prod` y el presupuesto con alerta son planeados):
 
 - **Cloud Run** como destino del contenedor, con servicio, revisiones y tráfico definidos en Terraform.
 - **Artifact Registry** para las imágenes, con política de limpieza de versiones antiguas.
@@ -25,7 +25,7 @@ Desplegar un contenedor en GCP por primera vez suele terminar en clics en la con
 - **Estado remoto** de Terraform en Cloud Storage, con versionado activado.
 - **Dos entornos** (`dev` y `prod`) que reutilizan los mismos módulos.
 - **Presupuesto con alerta** para que un error de configuración no se convierta en una factura.
-- **Pipeline de GitHub Actions**: `terraform fmt`/`validate`/`plan` en cada PR, y build + push + deploy al hacer merge a `main`.
+- **Pipeline de GitHub Actions**: `terraform fmt`/`validate`/`plan` en cada PR, y `terraform apply` al hacer merge a `main`; la imagen se despliega desde el repo de la aplicación.
 
 **No incluye (por ahora):**
 
@@ -37,7 +37,8 @@ Desplegar un contenedor en GCP por primera vez suele terminar en clics en la con
 
 ```mermaid
 flowchart LR
-    dev([Desarrollador]) -->|PR / merge| gh[GitHub Actions]
+    dev([Desarrollador]) -->|PR / merge| gh[GitHub Actions<br/>este repo]
+    app[Repo de la aplicación<br/>dockyard2sail-py<br/>fuera de este repo]
 
     subgraph gcp["Proyecto de GCP"]
         wif[Workload Identity<br/>Federation]
@@ -49,15 +50,17 @@ flowchart LR
 
     gh -->|token OIDC| wif
     wif -->|impersona SA de despliegue| gh
-    gh -->|docker push| ar
     gh -->|terraform apply| gcs
-    gh -->|nueva revisión| run
+    app -->|docker push| ar
+    app -->|gcloud run deploy| run
     ar -->|imagen| run
     sm -->|secretos en runtime| run
     user([Usuario]) -->|HTTPS| run
 ```
 
 La autenticación no guarda ningún secreto en GitHub: el workflow presenta un token OIDC efímero, Workload Identity Federation lo valida contra el repositorio autorizado y entrega credenciales de corta vida para impersonar la service account de despliegue.
+
+Ningún workflow de este repo construye ni sube la imagen: `plan.yml` corre `terraform plan` en cada PR y `deploy.yml` corre `terraform apply` al hacer merge a `main`. La imagen la maneja el repo de la aplicación, que sube la imagen a Artifact Registry y despliega con `gcloud run deploy`. Terraform ignora la imagen del servicio para que un `plan` no la revierta.
 
 ## Estructura prevista
 
@@ -75,7 +78,7 @@ Lo marcado como planeado todavía no existe.
 │   └── envs/
 │       ├── dev/
 │       └── prod/           # planeado
-├── .github/workflows/      # plan en PR (existe); deploy en main (planeado)
+├── .github/workflows/      # plan en PR y apply en main (existen)
 ├── docs/                   # decisiones (ADRs) y guía de arranque
 ├── Makefile                # fmt, validate, plan, apply por entorno
 └── README.md
@@ -108,7 +111,7 @@ Para `terraform/bootstrap/` (los prerrequisitos completos están en [su README](
 
 ## Cómo usarlo
 
-Los pasos 1 y 2 ya funcionan. El paso 3 es planeado.
+Los tres pasos ya funcionan.
 
 ```bash
 # 1. Crear el estado remoto y la federación de identidad (una sola vez)
@@ -116,11 +119,12 @@ Los pasos 1 y 2 ya funcionan. El paso 3 es planeado.
 make bootstrap PROJECT_ID=mi-proyecto-dev
 make bootstrap-migrate PROJECT_ID=mi-proyecto-dev
 
-# 2. Planear y aplicar un entorno. Montar secretos y subir la imagen: terraform/envs/dev/README.md
-make plan  ENV=dev PROJECT_ID=mi-proyecto-dev
-make apply ENV=dev PROJECT_ID=mi-proyecto-dev
+# 2. Planear un entorno desde tu computadora. Montar secretos y subir la imagen: terraform/envs/dev/README.md
+make plan ENV=dev PROJECT_ID=mi-proyecto-dev
 
-# 3. A partir de aquí, cada merge a main despliega vía GitHub Actions (planeado)
+# 3. Aplicar: abre un PR (plan.yml muestra el plan) y haz merge a main.
+#    deploy.yml corre `terraform apply` de dev con la SA apply. `make apply` local es la excepción.
+make apply ENV=dev PROJECT_ID=mi-proyecto-dev   # solo si CI no puede
 ```
 
 ## Hoja de ruta
@@ -128,8 +132,9 @@ make apply ENV=dev PROJECT_ID=mi-proyecto-dev
 - [x] Módulo `bootstrap` (estado remoto + Workload Identity Federation).
 - [x] Módulo `cloud-run-service` con el ejemplo de `dockyard2sail-py`
 - [x] Módulos `artifact-registry` y `secrets`
-- [x] Workflow de `plan` en PR
-- [ ] Workflow de `deploy` en `main`
+- [x] Workflow de `plan` en PR (`dev` y `bootstrap`)
+- [x] Detección semanal de drift de `dev` (`drift.yml`)
+- [x] Workflow de `deploy` en `main` (`terraform apply` de `dev`; la imagen se despliega desde el repo de la aplicación)
 - [x] Entorno `dev`
 - [ ] Entorno `prod`
 - [ ] Módulo `budget-alert`
@@ -149,7 +154,10 @@ make install-hooks  # habilitar los git hooks (una vez por clon)
 ```
 
 - **Hooks** (`.githooks/`, habilitados con `make install-hooks`): el `pre-commit` corre `make validate` y un escaneo de secretos con [gitleaks](https://github.com/gitleaks/gitleaks) sobre el diff staged; el `pre-push` corre `make trivy SEVERITY=CRITICAL` y bloquea solo si hay un hallazgo CRITICAL con fix publicado. Trivy corre en Docker con la imagen fijada por digest en el `Makefile`, así que no hace falta instalarlo; la base de vulnerabilidades se cachea en `~/.cache/trivy`.
-- **CI** (`.github/workflows/ci.yml`): jobs paralelos `fmt`, `validate`, `lock-check`, `license-check`, `trivy-fs` y `gitleaks` (este último sobre todo el historial). Las Actions de terceros están pineadas por commit SHA y el workflow declara `permissions: contents: read`.
+- **CI** (`.github/workflows/ci.yml`): jobs paralelos `fmt`, `validate`, `lock-check`, `license-check`, `trivy-fs` y `gitleaks` (este último sobre todo el historial). Corre en `pull_request` a `main` y en `push` a `main`, y cada job ejecuta un target de `make` con la misma versión y flags que en local: `fmt` → `fmt-check`, `validate` → `validate-tf`, `lock-check` → `lock-check`, `license-check` → `license-check`, `trivy-fs` → `trivy` y `gitleaks` → `secrets-history`. Las Actions de terceros están pineadas por commit SHA y el workflow declara `permissions: contents: read`.
+- **Planes de solo lectura** con la SA `plan`, sin lock de estado:
+  - [`plan.yml`](.github/workflows/plan.yml) muestra en el job summary del PR el `plan` de `dev` y, si el PR toca `terraform/bootstrap/`, el `Makefile` o el propio workflow, también el de `terraform/bootstrap` (`make plan-bootstrap-ci`). Un PR que solo toca `terraform/envs/` o `terraform/modules/` no lo ejecuta.
+  - [`drift.yml`](.github/workflows/drift.yml) corre cada lunes (y a mano con `workflow_dispatch`) `plan -detailed-exitcode` de `dev`: sin cambios sale en verde; drift o error salen en rojo, con el plan en el job summary.
 - **`lock-check`**: falla si un directorio raíz (`bootstrap` o `envs/*`) no tiene `.terraform.lock.hcl` o si el lockfile no corresponde a los providers declarados. Los módulos de `terraform/modules/` no llevan lockfile: Terraform solo usa el de la raíz. Este template no construye imágenes, así que no hay job de build.
 - **Dependabot** abre PRs semanales agrupados para las Actions y para los providers de `terraform/bootstrap` y `terraform/envs/dev`.
 - **Imágenes de herramientas fijadas por digest** en el `Makefile` (con su versión de Terraform anotada). Se actualizan a mano: Dependabot no las ve ahí.

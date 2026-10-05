@@ -4,12 +4,12 @@ variable "project_id" {
 }
 
 variable "name" {
-  description = "Nombre del servicio de Cloud Run. La SA de runtime se llama \"<name>-runtime\"."
+  description = "Nombre del servicio de Cloud Run (entre 4 y 22 caracteres). La SA de runtime se llama \"<name>-runtime\"."
   type        = string
 
   validation {
-    condition     = can(regex("^[a-z][a-z0-9-]{2,22}[a-z0-9]$", var.name))
-    error_message = "name debe tener entre 4 y 24 caracteres: minúsculas, números y guiones, empezando con una letra. El límite deja espacio para el sufijo -runtime en el id de la SA (30 caracteres como máximo)."
+    condition     = can(regex("^[a-z][a-z0-9-]{2,20}[a-z0-9]$", var.name))
+    error_message = "name debe tener entre 4 y 22 caracteres: minúsculas, números y guiones, empezando con una letra. El límite deja espacio para el sufijo -runtime en el id de la SA (30 caracteres como máximo)."
   }
 }
 
@@ -37,6 +37,17 @@ variable "min_instances" {
   validation {
     condition     = var.min_instances >= 0 && floor(var.min_instances) == var.min_instances
     error_message = "min_instances debe ser un entero mayor o igual a 0."
+  }
+}
+
+variable "max_instances" {
+  description = "Máximo de instancias del servicio. Limita la escala (el cómputo en paralelo), no el gasto: no sustituye una alerta de presupuesto. null no lo fija y Cloud Run usa su valor por defecto (100 por revisión)."
+  type        = number
+  default     = null
+
+  validation {
+    condition     = var.max_instances == null || (try(var.max_instances >= 1, false) && try(floor(var.max_instances) == var.max_instances, false))
+    error_message = "max_instances debe ser un entero mayor o igual a 1, o null para no limitar."
   }
 }
 

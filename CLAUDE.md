@@ -4,7 +4,7 @@ Guía de instrucciones para Claude Code al trabajar en este repositorio.
 
 Stack: Terraform sobre Google Cloud (Cloud Run, Artifact Registry, Secret Manager, Workload Identity Federation), GitHub Actions. Ver `README.md` para el alcance y la arquitectura prevista, y `Makefile` para los comandos.
 
-**Estado:** en construcción. Hoy el repo tiene documentación, tooling, CI, `terraform/bootstrap/`, los módulos `cloud-run-service`, `artifact-registry` y `secrets`, el entorno `terraform/envs/dev` y el workflow `plan.yml` (plan en PR). Todavía no existen el entorno `prod`, `budget-alert` ni el workflow de `deploy` en `main`. No describir como hecho lo que solo está planeado.
+**Estado:** en construcción. Hoy el repo tiene documentación, tooling, CI, `terraform/bootstrap/`, los módulos `cloud-run-service`, `artifact-registry` y `secrets`, el entorno `terraform/envs/dev` y los workflows `plan.yml` (plan en PR) y `deploy.yml` (`terraform apply` de `dev` al hacer merge a `main`). Todavía no existen el entorno `prod` ni `budget-alert`. La imagen no se construye aquí: se despliega desde el repo de la aplicación. No describir como hecho lo que solo está planeado.
 
 ---
 
@@ -21,7 +21,8 @@ make secrets-scan   # gitleaks sobre el diff staged
 make secrets-history # gitleaks sobre todo el historial de git (lo que corre el job gitleaks de CI)
 make trivy          # Trivy fs en Docker: vulnerabilidades + misconfiguraciones de IaC (SEVERITY=CRITICAL,HIGH por defecto)
 make plan ENV=dev PROJECT_ID=...   # terraform plan del entorno (credenciales de gcloud)
-make apply ENV=dev PROJECT_ID=...  # terraform apply del entorno; pide confirmación
+make apply ENV=dev PROJECT_ID=...  # terraform apply local del entorno; pide confirmación. Excepción: el camino normal es el merge a main (deploy.yml)
+make plan-ci / apply-ci ENV=dev PROJECT_ID=...  # los usan plan.yml y deploy.yml con un token de WIF en GOOGLE_OAUTH_ACCESS_TOKEN; no se corren a mano
 make install-hooks  # habilitar .githooks/ (una vez por clon)
 ```
 

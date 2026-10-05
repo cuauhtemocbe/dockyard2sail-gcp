@@ -3,7 +3,7 @@
 **Spec**: [deploy.md](./deploy.md)  
 **Issue**: #29 (T1 a T5: #30 a #34)  
 **Created**: 2026-10-02
-**Status**: approved
+**Status**: completed
 
 ## Components
 
@@ -43,7 +43,7 @@
 |--------|------------|
 | El primer `apply` desde CI falla por un permiso que la SA `apply` no tiene (nunca ha aplicado `envs/dev`; solo ha obtenido el token). | Es la prueba de integración. Si falla, el error nombra el permiso y se corrige en `bootstrap` en un PR aparte, sin ampliar roles por adelantado. |
 | El PR de `deploy.yml` se dispara a sí mismo al mergear con un `apply` real. | Es inocuo si `main` y el estado coinciden: el plan debe dar 0 cambios. Se corre `make plan ENV=dev` antes de mergear para saberlo. Si da cambios, se resuelven antes. |
-| `terraform.tfvars` local distinto de los defaults: CI aplicaría los defaults. | Hoy no tiene valores activos. Se confirma en el mismo `make plan` previo y se documenta la regla. |
+| `terraform.tfvars` local distinto de los defaults: CI aplicaría los defaults. | Hoy no tiene valores activos. Se confirma en el mismo `make plan` previo y se documenta la regla. El caso de los secretos queda cerrado en #43: `secret_ids` y `secret_env` se editan en los `default` de `variables.tf`, no en `terraform.tfvars`. |
 | Entre el `plan` del PR y el merge puede entrar otro cambio. | El job vuelve a planear y aplica ese plan, no el del PR. El summary lo muestra. |
 | Un fallo a medias deja `dev` parcialmente aplicado. | Terraform conserva lo creado en el estado, el workflow falla y el siguiente merge o `workflow_dispatch` reintenta. Sin reintentos automáticos. |
 
@@ -54,11 +54,11 @@
 
 ## Milestones
 
-- [ ] M1: `make validate` y `make trivy` pasan con `apply-ci` y `deploy.yml`.
-- [ ] M2: el merge del PR 1 dispara `deploy.yml` y termina en verde con 0 cambios.
-- [ ] M3: la prueba negativa (`workflow_dispatch` desde otra rama) falla al autenticarse.
-- [ ] M4: un cambio real en `envs/dev` se aplica tras el merge y `make plan ENV=dev` da 0 cambios.
-- [ ] M5: documentación y hoja de ruta actualizadas con lo verificado.
+- [x] M1: `make validate` y `make trivy` pasan con `apply-ci` y `deploy.yml`.
+- [x] M2: el merge del PR 1 dispara `deploy.yml` y termina en verde con 0 cambios.
+- [x] M3: la prueba negativa (`workflow_dispatch` desde otra rama) falla al autenticarse.
+- [x] M4: un cambio real en `envs/dev` se aplica tras el merge y `make plan ENV=dev` da 0 cambios.
+- [x] M5: documentación y hoja de ruta actualizadas con lo verificado.
 
 ## Tasks
 

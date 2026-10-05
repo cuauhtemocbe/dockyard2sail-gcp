@@ -6,31 +6,43 @@ Crea en un proyecto de GCP el repositorio de imágenes, los secretos y el servic
 
 - `bootstrap` aplicado y su estado migrado al bucket (`make bootstrap` y `make bootstrap-migrate`).
 - Credenciales de `gcloud` en tu computadora: `gcloud auth application-default login`.
-- Opcional: copia `terraform.tfvars.example` a `terraform.tfvars` para cambiar `region` o la imagen inicial. Ese archivo no se versiona. `project_id` no va ahí: lo pasa `make`.
+- Opcional: copia `terraform.tfvars.example` a `terraform.tfvars` para cambiar `region` o la imagen inicial (nunca `secret_ids` ni `secret_env`: ver "Montar un secreto"). Ese archivo no se versiona. `project_id` no va ahí: lo pasa `make`.
 
 ## Planear y aplicar
+
+El camino normal es CI:
+
+1. En un PR que cambie `terraform/**`, `plan.yml` muestra el plan en el job summary, como la SA `plan` (solo lectura).
+2. Al hacer merge a `main`, `deploy.yml` corre `make apply-ci`: vuelve a planear y aplica ese plan con la SA `apply` (WIF, solo desde `refs/heads/main`). El job summary muestra el plan y el resultado. Si falla, el workflow falla y no reintenta: el siguiente merge o un `workflow_dispatch` sobre `main` lo reintenta.
+
+`make apply` desde tu computadora es la excepción (por ejemplo, si CI no puede correr):
 
 ```bash
 make plan  ENV=dev PROJECT_ID=<proyecto>
 make apply ENV=dev PROJECT_ID=<proyecto>   # pide confirmación
 ```
 
-Un segundo `plan` justo después de aplicar debe dar "No changes". En un PR que cambie `terraform/**`, el workflow `plan.yml` muestra ese mismo plan en el job summary, como la SA `plan` (solo lectura).
+Un `plan` justo después de aplicar debe dar "No changes".
+
+**CI ve solo lo versionado.** `terraform.tfvars` no se versiona, así que `deploy.yml` aplica los `default` de las variables. Si tu `terraform.tfvars` local da un `plan` distinto de los defaults (por ejemplo, con otra `region`), el primer `deploy` revertiría esa diferencia. Todo valor que `dev` necesite en CI debe ser el `default` de la variable o venir de `TF_VAR_*`.
 
 El primer `apply` crea el servicio con una imagen de ejemplo (`image`). Después, Terraform **ignora** la imagen, `client` y `client_version`: la imagen la actualiza `gcloud run deploy`, y así un `plan` no la revierte al ejemplo.
 
-## Montar un secreto (en dos pasos)
+## Montar un secreto (dos PRs)
 
-Cloud Run comprueba al desplegar que el secreto tiene al menos una versión y que la SA de runtime puede leerlo. Por eso el montaje va en dos `apply`:
+`secret_ids` y `secret_env` viven en los `default` de [`variables.tf`](variables.tf), no en `terraform.tfvars`: así `plan.yml` y `deploy.yml` ven lo mismo que tú y el PR muestra el secreto que se crea o se quita. Hoy son `[]` y `{}`.
 
-1. En `terraform.tfvars`, define `secret_ids = ["mi-secreto"]` y aplica. Crea el secreto vacío y da `roles/secretmanager.secretAccessor` sobre ese secreto a la SA de runtime.
-2. Carga el valor, sin pasarlo por el código ni por Terraform:
+Cloud Run comprueba al desplegar que el secreto tiene al menos una versión y que la SA de runtime puede leerlo. Por eso el montaje va en dos PRs:
+
+1. **PR 1, crear el secreto.** En `variables.tf`, cambia el `default` de `secret_ids` a `["mi-secreto"]`. Al hacer merge, `deploy.yml` crea el secreto vacío y da `roles/secretmanager.secretAccessor` sobre él a la SA de runtime. Después, carga el valor sin pasarlo por el código ni por Terraform:
    ```bash
    printf '%s' "<valor>" | gcloud secrets versions add mi-secreto --project <proyecto> --data-file=-
    ```
-3. Agrega `secret_env = { MI_VARIABLE = "mi-secreto" }` y aplica de nuevo. El servicio recibe la variable con la versión `latest`.
+2. **PR 2, montarlo.** Cambia el `default` de `secret_env` a `{ MI_VARIABLE = "mi-secreto" }`. Al hacer merge, el servicio recibe la variable con la versión `latest`.
 
-El valor nunca llega al código, al plan ni al estado. Para quitar el secreto, borra esas líneas de `terraform.tfvars` y aplica.
+El valor nunca llega al código, al plan ni al estado.
+
+**Quitar un id de `secret_ids` destruye el secreto y todas sus versiones**, y el valor se pierde porque solo existe en Secret Manager. Para quitarlo, primero quita la variable de `secret_env` (PR 1) y después el id de `secret_ids` (PR 2), y revisa el plan del PR antes de mezclar.
 
 ## Subir y desplegar la imagen
 
@@ -52,6 +64,7 @@ gcloud run deploy dockyard2sail-py --image $IMG --region us-central1 --project <
 
 - **`allow_unauthenticated = true` en `dev`**: el servicio acepta llamadas sin credenciales, para poder probarlo con `curl`. Con `false`, solo lo invocan identidades con `roles/run.invoker` y un `curl` sin credenciales da 403.
 - **`min_instances` solo baja a 0 con `gcloud`.** El módulo escribe el bloque `scaling` únicamente si `min_instances > 0`, porque el provider no guarda el 0 en el estado. Si subes `min_instances` y luego lo quitas del código, el servicio sigue con instancias encendidas (y cuesta): bájalo con `gcloud run services update <servicio> --min-instances 0`.
+- **`max_instances = 3` limita la escala de `dev`, no el gasto.** El servicio es público: sin tope, Cloud Run usa su valor por defecto (la documentación de Cloud Run dice 100 por revisión; el servicio de `dev` tenía 20 antes de fijar el 3). Si quitas `max_instances` del código, el módulo deja de escribir `max_instance_count` y el servicio puede conservar el 3 (el provider quizá no lo restablezca): súbelo con `gcloud run services update <servicio> --max-instances <N>`, o fíjalo explícitamente en el código.
 - **La SA `apply` actúa como la SA de runtime** gracias al binding `serviceAccountUser` que crea el módulo para `deployers` (aquí, `<name_prefix>-apply@<proyecto>`). `name_prefix` debe coincidir con el de `bootstrap`.
 - **Orden al quitar roles en `bootstrap`:** aplica primero `envs/dev` (crea el binding) y después `bootstrap`.
 - **Para probar lo que puede hacer la SA `apply`**, define `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT=<SA apply>` en tu shell: `make apply` lo pasa al contenedor. Requiere `roles/iam.serviceAccountTokenCreator` sobre esa SA; dalo solo mientras dure la prueba y documéntalo.

@@ -1,8 +1,8 @@
 ---
 title: Workflow de deploy en main
-status: approved
+status: completed
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 issue: "#29"
 ---
 
@@ -28,18 +28,18 @@ Que cada merge a `main` que cambie Terraform aplique `envs/dev` desde GitHub Act
 
 ### Functional Requirements
 
-- [ ] `deploy.yml` corre en `push` a `main` cuando cambian `terraform/**`, el `Makefile` o el propio workflow, y también con `workflow_dispatch`.
-- [ ] El job se autentica como la SA `apply` por WIF con las variables de repositorio que ya existen (`WIF_PROVIDER`, `APPLY_SERVICE_ACCOUNT`, `GCP_PROJECT_ID`). No se crea ninguna variable ni secreto nuevo.
-- [ ] Un target `make apply-ci ENV=dev PROJECT_ID=...` corre `init`, `plan -out` y `apply` del plan guardado, con Terraform en Docker y el token en `GOOGLE_OAUTH_ACCESS_TOKEN` (como `plan-ci`). Recibe `ENV`, para que `prod` lo reutilice.
-- [ ] El job publica en el job summary el plan y el resultado del `apply`.
-- [ ] Un `concurrency` con grupo por entorno y `cancel-in-progress: false` evita dos `apply` a la vez y no corta uno a medias.
-- [ ] Si el `apply` falla, el workflow falla y el estado queda como Terraform lo dejó (sin reintentos automáticos).
+- [x] `deploy.yml` corre en `push` a `main` cuando cambian `terraform/**`, el `Makefile` o el propio workflow, y también con `workflow_dispatch`.
+- [x] El job se autentica como la SA `apply` por WIF con las variables de repositorio que ya existen (`WIF_PROVIDER`, `APPLY_SERVICE_ACCOUNT`, `GCP_PROJECT_ID`). No se crea ninguna variable ni secreto nuevo.
+- [x] Un target `make apply-ci ENV=dev PROJECT_ID=...` corre `init`, `plan -out` y `apply` del plan guardado, con Terraform en Docker y el token en `GOOGLE_OAUTH_ACCESS_TOKEN` (como `plan-ci`). Recibe `ENV`, para que `prod` lo reutilice.
+- [x] El job publica en el job summary el plan y el resultado del `apply`.
+- [x] Un `concurrency` con grupo por entorno y `cancel-in-progress: false` evita dos `apply` a la vez y no corta uno a medias.
+- [x] Si el `apply` falla, el workflow falla y el estado queda como Terraform lo dejó (sin reintentos automáticos).
 
 **Documentación**
 
-- [ ] README: el ítem "Workflow de `deploy` en `main`" de la hoja de ruta se marca al verificarlo, y el texto "build + push + deploy" se corrige a "`terraform apply` al hacer merge; la imagen se despliega desde el repo de la aplicación".
-- [ ] `terraform/envs/dev/README.md`: `apply` desde CI como camino normal y `make apply` local como excepción. Se documenta que CI ve solo lo versionado (ver restricciones).
-- [ ] `CLAUDE.md`, `CHANGELOG.md` (`[Unreleased]`) y la sección de estado reflejan que el workflow existe.
+- [x] README: el ítem "Workflow de `deploy` en `main`" de la hoja de ruta se marca al verificarlo, y el texto "build + push + deploy" se corrige a "`terraform apply` al hacer merge; la imagen se despliega desde el repo de la aplicación".
+- [x] `terraform/envs/dev/README.md`: `apply` desde CI como camino normal y `make apply` local como excepción. Se documenta que CI ve solo lo versionado (ver restricciones).
+- [x] `CLAUDE.md`, `CHANGELOG.md` (`[Unreleased]`) y la sección de estado reflejan que el workflow existe.
 
 ### Non-Functional Requirements
 
@@ -109,17 +109,17 @@ No hay pruebas de cobertura de código: no hay código de aplicación.
 ### Technical Constraints
 
 - Terraform corre en Docker vía `make`; el workflow no instala Terraform.
-- CI solo ve lo versionado: `terraform.tfvars` no se versiona, así que un valor que `dev` necesite en CI debe ser el `default` de la variable o venir de `TF_VAR_*`. Con `terraform.tfvars` local distinto de los defaults, el primer `deploy` revertiría esa diferencia.
+- CI solo ve lo versionado: `terraform.tfvars` no se versiona, así que un valor que `dev` necesite en CI debe ser el `default` de la variable o venir de `TF_VAR_*`. Con `terraform.tfvars` local distinto de los defaults, el primer `deploy` revertiría esa diferencia. Por eso `secret_ids` y `secret_env` se editan en los `default` de `variables.tf` y no en `terraform.tfvars` (#43): con `terraform.tfvars`, el `deploy` destruiría el secreto.
 - La SA `apply` solo se obtiene desde `refs/heads/main` (atributo `repo_ref` del provider de WIF).
 - `main` exige los checks `fmt`, `validate`, `lock-check`, `license-check`, `trivy-fs` y `gitleaks`. `deploy.yml` corre después del merge, así que no es un check requerido.
 
 ## Success Criteria
 
-- [ ] Tras el merge de un cambio en `terraform/envs/dev`, `deploy.yml` aplica el cambio sin intervención y el summary muestra el plan y el resultado.
-- [ ] `make plan ENV=dev` después de un `deploy` da 0 cambios.
-- [ ] Un `workflow_dispatch` sobre una rama distinta de `main` falla al autenticarse.
-- [ ] `deploy.yml` cumple los requisitos de seguridad (permisos mínimos, SHA pineados, sin llaves) y `make validate`, `make trivy` y el CI pasan.
-- [ ] El README marca el workflow como existente solo después de esa verificación, y su texto ya no promete build ni push de imagen desde este repo.
+- [x] Tras el merge de un cambio en `terraform/envs/dev`, `deploy.yml` aplica el cambio sin intervención y el summary muestra el plan y el resultado.
+- [x] `make plan ENV=dev` después de un `deploy` da 0 cambios.
+- [x] Un `workflow_dispatch` sobre una rama distinta de `main` falla al autenticarse.
+- [x] `deploy.yml` cumple los requisitos de seguridad (permisos mínimos, SHA pineados, sin llaves) y `make validate`, `make trivy` y el CI pasan.
+- [x] El README marca el workflow como existente solo después de esa verificación, y su texto ya no promete build ni push de imagen desde este repo.
 
 ## Implementation Plan
 

@@ -3,7 +3,7 @@ resource "google_artifact_registry_repository" "this" {
   repository_id = var.repository_id
   location      = var.location
   format        = "DOCKER"
-  description   = "Imágenes de contenedor de ${var.repository_id}"
+  description   = "Imágenes de contenedor de ${var.repository_id} (gestionado por Terraform)"
 
   cleanup_policy_dry_run = var.cleanup_policy_dry_run
 
