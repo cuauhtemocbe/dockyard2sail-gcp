@@ -109,30 +109,36 @@ La SA `apply` se obtiene desde `refs/heads/main`, así que quien pueda empujar d
 
 Tras aplicar el rol personalizado (#45), sigue este orden. Revocar las credenciales va al final, porque `make bootstrap` y `make plan` exigen el archivo de ADC.
 
+Los comandos leen las variables del repositorio con una función auxiliar, porque `gh variable get` no existe en todas las versiones de `gh` (en la 2.46.0 falla). Defínela en la terminal donde sigas los pasos, dentro del clon:
+
+```bash
+ghvar() { gh api "repos/{owner}/{repo}/actions/variables/$1" --jq .value; }
+```
+
 1. **Aplica:** `make bootstrap PROJECT_ID=<proyecto>`. El plan debe mostrar solo el rol y su binding nuevos y el borrado de `roles/secretmanager.admin` (más lo de otros cambios pendientes).
 2. **Da `serviceAccountTokenCreator`** sobre las SAs `apply` y `plan` a tu cuenta (sección siguiente).
 3. **Plan de `dev` como `apply`**, esperando ~1 min a que se propague el rol. Debe dar `No changes`:
    ```bash
-   export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT="$(gh variable get APPLY_SERVICE_ACCOUNT)"
+   export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT="$(ghvar APPLY_SERVICE_ACCOUNT)"
    make plan ENV=dev PROJECT_ID=<proyecto>
    ```
-4. **Lectura del rol como `plan`.** El primer `plan-bootstrap` posterior al apply refresca el rol y la SA `plan` necesita `iam.roles.get`; ningún CI lo ha ejercitado todavía. Debe devolver el rol:
+4. **Lectura del rol como `plan`.** El primer `plan-bootstrap` posterior al apply refresca el rol y la SA `plan` necesita `iam.roles.get`. Debe devolver el rol:
    ```bash
    gcloud iam roles describe <name_prefix>_apply_secrets --project <proyecto> \
-     --impersonate-service-account "$(gh variable get PLAN_SERVICE_ACCOUNT)"
+     --impersonate-service-account "$(ghvar PLAN_SERVICE_ACCOUNT)"
    ```
-   Si da `PERMISSION_DENIED`, a la SA `plan` le falta un rol de lectura de roles personalizados y el siguiente `plan-bootstrap` fallaría. `roles/iam.roleViewer` es el candidato, sin confirmar. No está verificado que `roles/iam.securityReviewer` (el que tiene hoy) lo incluya.
+   Con `roles/iam.securityReviewer`, el que tiene hoy, basta: lo confirmó la verificación del #45 el 2026-10-06. Si diera `PERMISSION_DENIED`, a la SA `plan` le falta un rol de lectura de roles personalizados y el siguiente `plan-bootstrap` fallaría; `roles/iam.roleViewer` sería el candidato.
 5. **`deploy.yml` por `workflow_dispatch`** debe terminar en verde.
 6. **Flujo de secretos de dos PRs de [`envs/dev`](../envs/dev/README.md#montar-un-secreto-dos-prs), con sus PRs de limpieza** (quitar `secret_env` y luego `secret_ids`). La limpieza es la única prueba de `secrets.delete` y del borrado del binding con el rol nuevo. Si algo falla por un permiso de `secretmanager.*` de `apply`, agrégalo al rol.
-7. **Lectura denegada:** con el secreto creado (antes de la limpieza del paso 6), `gcloud secrets versions access latest --secret <id> --project <proyecto> --impersonate-service-account "$(gh variable get APPLY_SERVICE_ACCOUNT)"` debe dar `PERMISSION_DENIED`.
-8. **Quita `serviceAccountTokenCreator`** (sección siguiente) y revoca el ADC (sección "Al terminar").
+7. **Lectura denegada:** con el secreto creado (antes de la limpieza del paso 6), `gcloud secrets versions access latest --secret <id> --project <proyecto> --impersonate-service-account "$(ghvar APPLY_SERVICE_ACCOUNT)"` debe dar `PERMISSION_DENIED`.
+8. **Quita `serviceAccountTokenCreator`** (sección siguiente), suelta la variable del paso 3 con `unset GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` (si no, un `make plan` posterior intenta suplantar a `apply` y falla) y revoca el ADC (sección "Al terminar").
 
 ### Dar y quitar `serviceAccountTokenCreator`
 
 Tu `roles/owner` no trae este rol, y suplantar una SA lo exige sobre ella. Dalo solo mientras dure la verificación y documéntalo, como en el [changelog del #20](../../specs/bootstrap.md#changelog) y en [`envs/dev`](../envs/dev/README.md#cosas-que-conviene-saber):
 
 ```bash
-for sa in "$(gh variable get APPLY_SERVICE_ACCOUNT)" "$(gh variable get PLAN_SERVICE_ACCOUNT)"; do
+for sa in "$(ghvar APPLY_SERVICE_ACCOUNT)" "$(ghvar PLAN_SERVICE_ACCOUNT)"; do
   gcloud iam service-accounts add-iam-policy-binding "$sa" --project <proyecto> \
     --member "user:<tu correo>" --role roles/iam.serviceAccountTokenCreator
 done
