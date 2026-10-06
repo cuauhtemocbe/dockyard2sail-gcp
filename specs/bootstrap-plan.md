@@ -85,7 +85,7 @@ Cada una se comprueba en la tarea indicada.
 - [x] **M3**: `make bootstrap-migrate` deja el estado en el bucket con versiones recuperables (T3).
 - [x] **M4**: desde un PR de prueba se obtiene la SA `plan` y falla al usar la SA `apply`; desde `main` se obtiene `apply` (T5, T6).
   - **Hecho (2026-09-26)**: desde el PR de prueba #8 (`refs/pull/8/merge`) la SA `plan` funcionó y la SA `apply` falló con `PERMISSION_DENIED` (`iam.serviceAccounts.getAccessToken`). El PR se cerró sin mergear.
-  - **Hecho (2026-09-27)**: el workflow `verify-apply-sa` corrió sobre `main` (ejecución 36293992691) y el token obtenido era de `dockyard2sail-apply@`.
+  - **Hecho (2026-09-27)**: el workflow `verify-apply-sa` corrió sobre `main` (ejecución 36293992691) y el token obtenido era de `dockyard2sail-apply@`. El workflow se eliminó después (#50): hoy esta mitad de la prueba la cubre `deploy.yml`, que se autentica con la SA `apply` en cada merge a `main`.
   - **Ojo**: `google-github-actions/auth` sin `token_format` solo escribe el archivo de credenciales y no llama a GCP, así que no sirve para probar una denegación. La prueba usó `token_format: access_token`.
 - [x] **M5**: lockfile versionado, CHANGELOG y README actualizados, CI verde y checklist de "Antes de mergear" completo (T7, T8). Verificado el 2026-09-27: CI en verde en el PR #9 y en `main` (`c9d50be`), `make validate` y `make trivy` sin hallazgos.
 

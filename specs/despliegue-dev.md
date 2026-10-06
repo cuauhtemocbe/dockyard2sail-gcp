@@ -92,7 +92,7 @@ Los módulos se pasan datos por outputs: la URL del repositorio, los ids de los 
 ### External Dependencies
 
 - Imagen `hashicorp/terraform` fijada por digest en el `Makefile`, y provider `hashicorp/google` con `~>`.
-- `google-github-actions/auth`, la misma Action y el mismo commit SHA que usa `verify-apply-sa.yml`.
+- `google-github-actions/auth`, la misma Action y el mismo commit SHA que usaba `verify-apply-sa.yml` (eliminado en #50; hoy la usa `deploy.yml`).
 - Variables de repositorio `WIF_PROVIDER` y `APPLY_SERVICE_ACCOUNT` (existen) y `PLAN_SERVICE_ACCOUNT` (nueva).
 
 ## User Stories

@@ -9,6 +9,9 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Changed
 
+- `.githooks/pre-commit`: el mensaje lista lo que `make validate` corre de verdad (fmt-check + validate-tf + lock-check + license-check); antes omitía `lock-check` (#50).
+- `terraform/bootstrap/README.md`: las variables del repositorio (`WIF_PROVIDER`, `APPLY_SERVICE_ACCOUNT`) evitan commitear el valor, no lo ocultan: el repositorio y los logs de Actions son públicos y el paso de autenticación imprime el provider y el `project_id`. Ya no promete que el repo no lleve el número de proyecto. Las referencias a `verify-apply-sa.yml` en README y specs apuntan a `deploy.yml` o dicen que se eliminó (#50).
+- `terraform/bootstrap/README.md` → "Protección de `main`": documenta `sha_pinning_required` (pendiente de activar por el owner, `false` el 2026-10-06) y `dependabot_security_updates` (activo el 2026-10-06), con el comando para comprobarlos (#50).
 - `bootstrap`: la SA `apply` cambia `roles/secretmanager.admin` por un rol personalizado (`<name_prefix>_apply_secrets`) sin `secretmanager.versions.access` ni `versions.add`: `apply` no tiene lectura directa del valor de los secretos. No es una frontera dura: `secrets.setIamPolicy` y `serviceAccountAdmin` le permiten darse acceso, pero eso pasa por un cambio de IAM auditable. `roles/iam.serviceAccountAdmin` se queda sobre el proyecto, con la decisión y su razón en `terraform/bootstrap/README.md`. `specs/bootstrap-plan.md` refleja los roles finales. Lo aplica el owner a mano con `make bootstrap`; aplicado y verificado el 2026-10-06, con el detalle en `specs/bootstrap.md` (#45).
 - `bootstrap`: `github_repository_id` es obligatorio (sin `default`, conserva la validación numérica) y la condición del provider de WIF siempre exige nombre e ID del repositorio. Antes, sin el ID, la confianza dependía solo del nombre `owner/repo`, reutilizable si el repositorio se borra. `terraform.tfvars.example` lo trae descomentado y el README de bootstrap deja de llamarlo opcional. No cambia el plan de un despliegue que ya lo define (#46).
 - `ci.yml`: corre en `push` solo a `main` (antes a cualquier rama), así que un commit de un PR genera un run y no dos. Todos los jobs tienen `timeout-minutes: 10`. El job `trivy-fs` (mismo nombre, check requerido) ejecuta `make trivy` en lugar de `trivy-action`: misma imagen fijada por digest (v0.75.0) y mismos flags que en local. Ya no escanea secretos, que cubre `gitleaks` (#49).
@@ -19,6 +22,10 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - El `Makefile` anota la versión de Terraform de la imagen fijada (v1.16.4) y que sus imágenes se actualizan a mano.
 - `envs/dev`: `secret_ids` y `secret_env` se definen en los `default` de `variables.tf`, no en `terraform.tfvars`. Con `terraform.tfvars` (no versionado), el siguiente `deploy` destruía el secreto y sus versiones y quitaba la variable del servicio, porque CI aplica los `default`. El montaje de un secreto pasa a ser dos PRs (crear y cargar el valor; montar), el README advierte que quitar un id destruye el secreto, y `terraform.tfvars.example` ya no documenta estas variables. Los `default` siguen siendo `[]` y `{}`: `dev` no tiene secretos (#43).
 - README: el diagrama de "Arquitectura prevista" ya no muestra a GitHub Actions de este repo haciendo `docker push` ni creando una revisión de Cloud Run; esas dos flechas salen del repo de la aplicación (`dockyard2sail-py`), y este repo solo hace `terraform apply`. El texto bajo el diagrama aclara el reparto (#40).
+
+### Removed
+
+- Workflow `verify-apply-sa.yml`: era la mitad positiva de la prueba M4 de `specs/bootstrap-plan.md` y `deploy.yml` ya se autentica con la SA `apply` en cada merge a `main`. Las variables `WIF_PROVIDER` y `APPLY_SERVICE_ACCOUNT` se conservan: las usan `deploy.yml`, `plan.yml` y `drift.yml` (#50).
 
 ### Fixed
 

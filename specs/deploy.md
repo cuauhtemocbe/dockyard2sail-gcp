@@ -14,7 +14,7 @@ Que cada merge a `main` que cambie Terraform aplique `envs/dev` desde GitHub Act
 
 ## Context
 
-`plan.yml` ya muestra el `plan` de `dev` en cada PR con la SA `plan` (solo lectura). `verify-apply-sa.yml` ya probó que una ejecución sobre `refs/heads/main` obtiene la SA `apply` por Workload Identity Federation (WIF). Falta el workflow que usa esa SA para aplicar. Hoy el `apply` lo hace una persona desde su computadora (decisión del spec [`despliegue-dev`](./despliegue-dev.md), que lo dejó para este).
+`plan.yml` ya muestra el `plan` de `dev` en cada PR con la SA `plan` (solo lectura). El workflow `verify-apply-sa.yml` (luego eliminado, #50) probó que una ejecución sobre `refs/heads/main` obtiene la SA `apply` por Workload Identity Federation (WIF). Falta el workflow que usa esa SA para aplicar. Hoy el `apply` lo hace una persona desde su computadora (decisión del spec [`despliegue-dev`](./despliegue-dev.md), que lo dejó para este).
 
 ### Decisiones tomadas el 2026-10-02
 
@@ -103,7 +103,7 @@ No hay pruebas de cobertura de código: no hay código de aplicación.
 - `envs/prod` y su compuerta de aprobación: `apply-ci` ya recibe `ENV`, pero el entorno es otro spec.
 - `budget-alert`.
 - Detección de drift programada y notificaciones fuera de las que GitHub ya envía cuando un workflow falla.
-- Retirar `verify-apply-sa.yml`: se decide cuando `deploy.yml` esté verificado.
+- Retirar `verify-apply-sa.yml`: decidido y hecho en #50 (`deploy.yml` ya cubre la prueba).
 - Cambiar los roles de la SA `apply` salvo que la prueba de integración muestre un permiso faltante (ver riesgo en el plan).
 
 ### Technical Constraints
