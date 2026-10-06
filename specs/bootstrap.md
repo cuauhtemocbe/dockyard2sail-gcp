@@ -185,3 +185,10 @@ Motivo: con el rol sobre todo el proyecto, la SA `apply` podía actuar como cual
 - **MODIFIED** Permisos de `apply` (`bootstrap-plan.md`): ya no tiene `roles/iam.serviceAccountUser` sobre el proyecto. Lo recibe solo sobre la SA de runtime de cada servicio, por el binding que crea `cloud-run-service` para sus `deployers`. `roles/iam.serviceAccountAdmin` sigue sobre el proyecto, porque hace falta para crear la SA de runtime y su binding.
 - **ADDED** Orden de aplicación: `envs/<env>` primero (crea el binding) y `bootstrap` después (quita el rol del proyecto).
 - **Verificado** el 2026-10-01: un `apply` de `envs/dev` suplantando a la SA `apply` actualizó el servicio de Cloud Run (registro de auditoría: `UpdateService` de `dockyard2sail-apply@…`, 05:40:57 UTC) sin el rol sobre el proyecto. Para suplantarla se dio `roles/iam.serviceAccountTokenCreator` sobre la SA `apply` a la persona administradora, de 05:01:49 UTC a 05:43:26 UTC; ya está revocado y la SA solo conserva `roles/iam.workloadIdentityUser`.
+
+### 2026-10-06: la SA `apply` cambia `roles/secretmanager.admin` por un rol personalizado
+
+Motivo: `roles/secretmanager.admin` incluye `secretmanager.versions.access`, y el módulo `secrets` nunca lee el valor. Issue #45.
+
+- **MODIFIED** Permisos de `apply` (`bootstrap-plan.md`): en lugar de `roles/secretmanager.admin` tiene el rol personalizado `<name_prefix>_apply_secrets`, sin `versions.access` ni `versions.add`. No hay lectura directa del valor, pero no es una frontera dura: `secrets.setIamPolicy` y `serviceAccountAdmin` permiten que `apply` se dé acceso. `roles/iam.serviceAccountAdmin` se queda sobre el proyecto (opción 3 del issue).
+- **PENDIENTE** Verificación con impersonación (la corre el owner; pasos en `terraform/bootstrap/README.md`): `plan` de `dev` como `apply` sin cambios, lectura del rol como SA `plan`, `deploy.yml`, flujo de secretos con limpieza y `PERMISSION_DENIED` al leer un valor.
