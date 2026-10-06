@@ -74,6 +74,10 @@ locals {
 # persona con `gcloud secrets versions add`. versions.get y versions.list devuelven solo
 # metadatos (no el valor); quedan por si Cloud Run los pide al desplegar un servicio que
 # monta `latest`. Se confirma en la verificación del README de bootstrap.
+# secrets.setIamPolicy se queda aunque SonarQube lo marque (terraform:S6408, aceptado el
+# 2026-10-06): el módulo `secrets` lo necesita para el binding de secretAccessor de la SA de
+# runtime. La escalada (darse secretAccessor y leer el valor) está en specs/bootstrap-plan.md;
+# la contiene que `apply` solo se obtiene desde `main`, protegida con enforce_admins.
 resource "google_project_iam_custom_role" "apply_secrets" {
   project     = var.project_id
   role_id     = "${replace(var.name_prefix, "-", "_")}_apply_secrets"

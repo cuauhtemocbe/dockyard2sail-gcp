@@ -9,6 +9,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Changed
 
+- `bootstrap`: el hallazgo `terraform:S6408` de SonarQube sobre `secretmanager.secrets.setIamPolicy` en el rol `apply_secrets` se acepta con la razón documentada (el módulo `secrets` lo necesita; el riesgo está en `specs/bootstrap-plan.md` y lo contiene que `apply` solo se obtiene desde `main` con `enforce_admins`). Sin cambio de recursos ni permisos: solo el comentario de `service_accounts.tf` y el spec. La aceptación en SonarQube la hace el owner en la UI (#62).
 - `.githooks/pre-commit`: el mensaje lista lo que `make validate` corre de verdad (fmt-check + validate-tf + lock-check + license-check); antes omitía `lock-check` (#50).
 - `terraform/bootstrap/README.md`: las variables del repositorio (`WIF_PROVIDER`, `APPLY_SERVICE_ACCOUNT`) evitan commitear el valor, no lo ocultan: el repositorio y los logs de Actions son públicos y el paso de autenticación imprime el provider y el `project_id`. Ya no promete que el repo no lleve el número de proyecto. Las referencias a `verify-apply-sa.yml` en README y specs apuntan a `deploy.yml` o dicen que se eliminó (#50).
 - `terraform/bootstrap/README.md` → "Protección de `main`": documenta `sha_pinning_required` (pendiente de activar por el owner, `false` el 2026-10-06) y `dependabot_security_updates` (activo el 2026-10-06), con el comando para comprobarlos (#50).
