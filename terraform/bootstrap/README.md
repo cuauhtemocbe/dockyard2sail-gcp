@@ -100,24 +100,49 @@ La SA `apply` se obtiene desde `refs/heads/main`, así que quien pueda empujar d
 - **Un binding puede fallar con "service account does not exist"** segundos después de crear la SA. El `apply` es idempotente: reintenta.
 - **`name_prefix` cambia el nombre de las SAs y del pool, pero no el del bucket**, que siempre es `<project_id>-tfstate`.
 - **`apply` tiene `roles/iam.serviceAccountAdmin` sobre todo el proyecto**, porque `cloud-run-service` necesita crear la SA de runtime y su binding. No tiene `roles/iam.serviceAccountUser` sobre el proyecto: lo recibe solo sobre la SA de runtime de cada servicio, por el binding que crea `cloud-run-service` para sus `deployers`. Al desplegar un entorno por primera vez, aplica `envs/<env>` antes de quitar ese rol a una SA `apply` que ya lo tuviera.
-- **`apply` no lee el valor de los secretos.** En lugar de `roles/secretmanager.admin` tiene un rol personalizado (`<name_prefix>_apply_secrets`, con guiones bajos) con lo que Terraform usa en el módulo `secrets`: `secrets.create/delete/get/list/update`, `secrets.getIamPolicy/setIamPolicy` y, solo como metadatos, `versions.get/list`. No incluye `secretmanager.versions.access` (leer el valor) ni `versions.add`: el valor lo carga una persona con `gcloud secrets versions add`, como en el flujo de dos PRs de `envs/dev`.
+- **`apply` no tiene lectura directa del valor de los secretos.** En lugar de `roles/secretmanager.admin` tiene un rol personalizado (`<name_prefix>_apply_secrets`, con guiones bajos) con lo que Terraform usa en el módulo `secrets`: `secrets.create/delete/get/update`, `secrets.getIamPolicy/setIamPolicy` y, solo como metadatos, `secrets.list` y `versions.get/list`. No incluye `secretmanager.versions.access` (leer el valor) ni `versions.add`: el valor lo carga una persona con `gcloud secrets versions add`, como en el flujo de dos PRs de `envs/dev`. No es una frontera dura: `secrets.setIamPolicy` (que el módulo `secrets` necesita) y el `iam.serviceAccounts.setIamPolicy` de `serviceAccountAdmin` permiten que `apply` se dé acceso. Una lectura maliciosa tendría que pasar por un cambio de IAM, que queda en el registro de auditoría y en el plan.
+- **`secrets.list` y `versions.get/list` sobran hoy**: nada del repo los usa (el provider 8.5.0 no los llama). Pueden quitarse en otro cambio cuando el flujo de secretos de la verificación haya pasado.
 - **Decisión: `roles/iam.serviceAccountAdmin` se queda sobre todo el proyecto.** Incluye `iam.serviceAccounts.setIamPolicy`, así que un workflow comprometido en `main` podría darse `serviceAccountUser` o `serviceAccountTokenCreator` sobre cualquier SA del proyecto. Se acepta porque no se pudo confirmar que una condición de IAM por prefijo de nombre funcione con este rol (por eso `cloud-run-service` tampoco la usa), porque hoy no hay SA más privilegiada que `apply` en el proyecto y porque quien puede empujar a `main` ya obtiene `apply`, y `main` está protegida (`enforce_admins`). Hay un proyecto por entorno. Se revisa cuando exista otra SA con más permisos que `apply` (por ejemplo, la identidad de CI del repo de la aplicación, #47) o cuando se confirme una condición viable.
 - **`apply` no tiene `roles/resourcemanager.projectIamAdmin`**, a propósito: con él podría asignarse `roles/owner`. Los módulos siguientes dan permisos sobre cada recurso, no sobre el proyecto.
 
-## Comprobar que `apply` no lee secretos
+## Verificar el rol personalizado de `apply`
 
-Tras aplicar el rol personalizado, con tus credenciales de `gcloud` y la SA `apply` como identidad a imitar (tu cuenta necesita `roles/iam.serviceAccountTokenCreator` sobre ella):
+Tras aplicar el rol personalizado (#45), sigue este orden. Revocar las credenciales va al final, porque `make bootstrap` y `make plan` exigen el archivo de ADC.
+
+1. **Aplica:** `make bootstrap PROJECT_ID=<proyecto>`. El plan debe mostrar solo el rol y su binding nuevos y el borrado de `roles/secretmanager.admin` (más lo de otros cambios pendientes).
+2. **Da `serviceAccountTokenCreator`** sobre las SAs `apply` y `plan` a tu cuenta (sección siguiente).
+3. **Plan de `dev` como `apply`**, esperando ~1 min a que se propague el rol. Debe dar `No changes`:
+   ```bash
+   export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT="$(gh variable get APPLY_SERVICE_ACCOUNT)"
+   make plan ENV=dev PROJECT_ID=<proyecto>
+   ```
+4. **Lectura del rol como `plan`.** El primer `plan-bootstrap` posterior al apply refresca el rol y la SA `plan` necesita `iam.roles.get`; ningún CI lo ha ejercitado todavía. Debe devolver el rol:
+   ```bash
+   gcloud iam roles describe <name_prefix>_apply_secrets --project <proyecto> \
+     --impersonate-service-account "$(gh variable get PLAN_SERVICE_ACCOUNT)"
+   ```
+   Si da `PERMISSION_DENIED`, a la SA `plan` le falta un rol de lectura de roles personalizados y el siguiente `plan-bootstrap` fallaría. `roles/iam.roleViewer` es el candidato, sin confirmar. No está verificado que `roles/iam.securityReviewer` (el que tiene hoy) lo incluya.
+5. **`deploy.yml` por `workflow_dispatch`** debe terminar en verde.
+6. **Flujo de secretos de dos PRs de [`envs/dev`](../envs/dev/README.md#montar-un-secreto-dos-prs), con sus PRs de limpieza** (quitar `secret_env` y luego `secret_ids`). La limpieza es la única prueba de `secrets.delete` y del borrado del binding con el rol nuevo. Si algo falla por un permiso de `secretmanager.*` de `apply`, agrégalo al rol.
+7. **Lectura denegada:** con el secreto creado (antes de la limpieza del paso 6), `gcloud secrets versions access latest --secret <id> --project <proyecto> --impersonate-service-account "$(gh variable get APPLY_SERVICE_ACCOUNT)"` debe dar `PERMISSION_DENIED`.
+8. **Quita `serviceAccountTokenCreator`** (sección siguiente) y revoca el ADC (sección "Al terminar").
+
+### Dar y quitar `serviceAccountTokenCreator`
+
+Tu `roles/owner` no trae este rol, y suplantar una SA lo exige sobre ella. Dalo solo mientras dure la verificación y documéntalo, como en el [changelog del #20](../../specs/bootstrap.md#changelog) y en [`envs/dev`](../envs/dev/README.md#cosas-que-conviene-saber):
 
 ```bash
-export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT="$(terraform -chdir=terraform/bootstrap output -raw apply_service_account_email)"
-make plan ENV=dev PROJECT_ID=<proyecto>   # debe dar "No changes"
+for sa in "$(gh variable get APPLY_SERVICE_ACCOUNT)" "$(gh variable get PLAN_SERVICE_ACCOUNT)"; do
+  gcloud iam service-accounts add-iam-policy-binding "$sa" --project <proyecto> \
+    --member "user:<tu correo>" --role roles/iam.serviceAccountTokenCreator
+done
 ```
 
-Si hay un secreto, `gcloud secrets versions access latest --secret <id> --impersonate-service-account "$GOOGLE_IMPERSONATE_SERVICE_ACCOUNT"` debe fallar con `PERMISSION_DENIED`. El flujo de secretos de dos PRs de [`envs/dev`](../envs/dev/README.md) debe seguir funcionando (crear el secreto, montarlo).
+Para quitarlo, el mismo bucle con `remove-iam-policy-binding`.
 
 ## Al terminar
 
-Revoca las credenciales de tu computadora. Incluyen un token de renovación de larga vida:
+Revoca las credenciales de tu computadora (tras la verificación, si la haces). Incluyen un token de renovación de larga vida:
 
 ```bash
 gcloud auth application-default revoke
