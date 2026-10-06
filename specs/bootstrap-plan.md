@@ -28,13 +28,15 @@ Cada rol lleva un comentario en el código que explica para qué se necesita.
 |----|-----|---------|
 | `plan` | `roles/run.viewer`, `roles/artifactregistry.reader`, `roles/secretmanager.viewer`, `roles/iam.securityReviewer`, `roles/serviceusage.serviceUsageConsumer`, `roles/iam.workloadIdentityPoolViewer` | Proyecto |
 | `plan` | `roles/storage.objectViewer`, `roles/storage.legacyBucketReader` | Solo el bucket de estado |
-| `apply` | `roles/run.admin`, `roles/artifactregistry.admin`, `roles/secretmanager.admin`, `roles/iam.serviceAccountAdmin` | Proyecto |
+| `apply` | `roles/run.admin`, `roles/artifactregistry.admin`, `roles/iam.serviceAccountAdmin`, `roles/serviceusage.serviceUsageConsumer` | Proyecto |
+| `apply` | Rol personalizado `<name_prefix>_apply_secrets`: `secretmanager.secrets.create/delete/get/list/update/getIamPolicy/setIamPolicy` y `versions.get/list`, sin `versions.access` | Proyecto |
 | `apply` | `roles/storage.objectAdmin` | Solo el bucket de estado |
 
-Tres decisiones de diseño detrás de esa tabla:
+Cuatro decisiones de diseño detrás de esa tabla:
 
 - **`plan` corre con `-lock=false` y sin permiso de escritura.** El backend de GCS bloquea el estado escribiendo un objeto `.tflock` en el bucket. Un `plan` con bloqueo necesitaría escribir en el bucket de estado. Como `plan` no modifica infraestructura, no se le da esa escritura.
 - **`apply` no recibe `roles/resourcemanager.projectIamAdmin`.** Con ese rol podría asignarse `roles/owner` a sí misma. Los módulos siguientes deben dar permisos sobre cada recurso (el secreto, el repositorio de Artifact Registry, el servicio de Cloud Run) y no sobre todo el proyecto.
+- **`apply` no tiene `roles/secretmanager.admin`.** Incluye `secretmanager.versions.access`, y la SA podría leer el valor de todos los secretos, que el módulo `secrets` nunca lee. Un rol personalizado deja solo los permisos que Terraform usa (#45).
 - **El permiso para usar `apply` se define con un atributo compuesto.** El provider de WIF mapea `repo_ref = repositorio@ref`. Un permiso de WIF solo puede filtrar por un atributo, y con este el binding de `apply` exige repositorio y rama a la vez, sin condiciones IAM adicionales.
 
 ## Dependencies
@@ -64,7 +66,7 @@ Tres decisiones de diseño detrás de esa tabla:
 | En un proyecto nuevo, `cloudresourcemanager` y `serviceusage` pueden no estar activas, y Terraform necesita ambas para habilitar el resto. | Se documenta como prerrequisito en el README del módulo. Si el primer `apply` falla por esa causa, se documenta el paso mínimo para activarlas. |
 | Un binding de IAM puede fallar con "service account does not exist" segundos después de crear la SA. Es un comportamiento conocido de GCP que aún no se ha reproducido en este módulo. | Reintentar el `apply`, que es idempotente. Solo si se repite siempre se agrega una espera con `time_sleep`. |
 | El evento `pull_request_target` corre en el contexto de la rama base. Su `ref` sería `refs/heads/main` y obtendría la SA `apply`. | El README del módulo prohíbe usar `pull_request_target` con WIF. La regla se aplica al escribir los workflows, que son el siguiente ítem de la hoja de ruta. |
-| `apply` tiene `roles/iam.serviceAccountAdmin` sobre todo el proyecto. | Se acepta porque `cloud-run-service` necesita crear la SA de runtime y su binding. `roles/iam.serviceAccountUser` ya no está en el proyecto: `cloud-run-service` lo da sobre su SA de runtime (ver el changelog de `specs/bootstrap.md`). |
+| `apply` tiene `roles/iam.serviceAccountAdmin` sobre todo el proyecto. | Se acepta (#45) porque `cloud-run-service` necesita crear la SA de runtime y su binding, y no se pudo confirmar una condición de IAM por prefijo para este rol. Riesgo latente: puede darse `serviceAccountUser` o `serviceAccountTokenCreator` sobre otras SAs. Se revisa al agregar una SA con más permisos que `apply`. `roles/iam.serviceAccountUser` ya no está en el proyecto: `cloud-run-service` lo da sobre su SA de runtime (ver el changelog de `specs/bootstrap.md`). |
 | Las credenciales de `gcloud auth application-default login` incluyen un token de renovación de larga vida en la computadora de quien ejecuta. No está en el repo ni en los secrets de GitHub, así que no rompe las reglas del proyecto. | El README recomienda revocarlas al terminar el bootstrap. |
 | Trivy podría marcar el bucket por no usar Cloud KMS. No está verificado. | Cloud KMS está fuera de alcance. Si el hallazgo es CRITICAL o HIGH, se documenta la excepción con fecha de revisión, como pide `CLAUDE.md`. |
 

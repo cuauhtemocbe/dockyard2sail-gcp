@@ -58,13 +58,46 @@ locals {
   # owner, editor ni projectIamAdmin: con este último podría asignarse owner a sí misma.
   # Tampoco serviceAccountUser sobre el proyecto: lo recibe solo sobre la SA de runtime de cada
   # servicio, mediante el binding que crea el módulo cloud-run-service para sus `deployers`.
+  # Los secretos van con un rol personalizado (abajo), no con secretmanager.admin.
   apply_project_roles = toset([
     "roles/run.admin",                         # crear y actualizar servicios de Cloud Run
     "roles/artifactregistry.admin",            # crear y administrar repositorios de Artifact Registry
-    "roles/secretmanager.admin",               # crear secretos y sus versiones
-    "roles/iam.serviceAccountAdmin",           # crear las SAs de runtime de los servicios y su binding de serviceAccountUser (sigue sobre el proyecto: hace falta para crear la SA)
+    "roles/iam.serviceAccountAdmin",           # crear las SAs de runtime de los servicios y su binding de serviceAccountUser (sigue sobre el proyecto: hace falta para crear la SA; ver "Cosas que conviene saber" en el README)
     "roles/serviceusage.serviceUsageConsumer", # usar el proyecto como quota project (user_project_override)
   ])
+}
+
+# Reemplaza a roles/secretmanager.admin. Solo lo que Terraform usa en el módulo `secrets`:
+# crear, leer, actualizar y borrar el contenedor del secreto, y su política de IAM (el binding
+# de secretAccessor para la SA de runtime). Sin secretmanager.versions.access: la SA `apply`
+# no puede leer el valor de ningún secreto. Tampoco versions.add: el valor lo carga una
+# persona con `gcloud secrets versions add`. versions.get y versions.list devuelven solo
+# metadatos (no el valor); quedan por si Cloud Run los pide al desplegar un servicio que
+# monta `latest`. Se confirma en la verificación del README de bootstrap.
+resource "google_project_iam_custom_role" "apply_secrets" {
+  project     = var.project_id
+  role_id     = "${replace(var.name_prefix, "-", "_")}_apply_secrets"
+  title       = "CI apply: secretos sin lectura de valores"
+  description = "Administra contenedores de Secret Manager y su IAM, sin secretmanager.versions.access."
+  permissions = [
+    "secretmanager.secrets.create",
+    "secretmanager.secrets.delete",
+    "secretmanager.secrets.get",
+    "secretmanager.secrets.list",
+    "secretmanager.secrets.update",
+    "secretmanager.secrets.getIamPolicy",
+    "secretmanager.secrets.setIamPolicy",
+    "secretmanager.versions.get",
+    "secretmanager.versions.list",
+  ]
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_project_iam_member" "apply_secrets" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.apply_secrets.id
+  member  = google_service_account.apply.member
 }
 
 resource "google_service_account" "apply" {

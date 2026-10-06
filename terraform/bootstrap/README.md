@@ -100,7 +100,20 @@ La SA `apply` se obtiene desde `refs/heads/main`, así que quien pueda empujar d
 - **Un binding puede fallar con "service account does not exist"** segundos después de crear la SA. El `apply` es idempotente: reintenta.
 - **`name_prefix` cambia el nombre de las SAs y del pool, pero no el del bucket**, que siempre es `<project_id>-tfstate`.
 - **`apply` tiene `roles/iam.serviceAccountAdmin` sobre todo el proyecto**, porque `cloud-run-service` necesita crear la SA de runtime y su binding. No tiene `roles/iam.serviceAccountUser` sobre el proyecto: lo recibe solo sobre la SA de runtime de cada servicio, por el binding que crea `cloud-run-service` para sus `deployers`. Al desplegar un entorno por primera vez, aplica `envs/<env>` antes de quitar ese rol a una SA `apply` que ya lo tuviera.
+- **`apply` no lee el valor de los secretos.** En lugar de `roles/secretmanager.admin` tiene un rol personalizado (`<name_prefix>_apply_secrets`, con guiones bajos) con lo que Terraform usa en el módulo `secrets`: `secrets.create/delete/get/list/update`, `secrets.getIamPolicy/setIamPolicy` y, solo como metadatos, `versions.get/list`. No incluye `secretmanager.versions.access` (leer el valor) ni `versions.add`: el valor lo carga una persona con `gcloud secrets versions add`, como en el flujo de dos PRs de `envs/dev`.
+- **Decisión: `roles/iam.serviceAccountAdmin` se queda sobre todo el proyecto.** Incluye `iam.serviceAccounts.setIamPolicy`, así que un workflow comprometido en `main` podría darse `serviceAccountUser` o `serviceAccountTokenCreator` sobre cualquier SA del proyecto. Se acepta porque no se pudo confirmar que una condición de IAM por prefijo de nombre funcione con este rol (por eso `cloud-run-service` tampoco la usa), porque hoy no hay SA más privilegiada que `apply` en el proyecto y porque quien puede empujar a `main` ya obtiene `apply`, y `main` está protegida (`enforce_admins`). Hay un proyecto por entorno. Se revisa cuando exista otra SA con más permisos que `apply` (por ejemplo, la identidad de CI del repo de la aplicación, #47) o cuando se confirme una condición viable.
 - **`apply` no tiene `roles/resourcemanager.projectIamAdmin`**, a propósito: con él podría asignarse `roles/owner`. Los módulos siguientes dan permisos sobre cada recurso, no sobre el proyecto.
+
+## Comprobar que `apply` no lee secretos
+
+Tras aplicar el rol personalizado, con tus credenciales de `gcloud` y la SA `apply` como identidad a imitar (tu cuenta necesita `roles/iam.serviceAccountTokenCreator` sobre ella):
+
+```bash
+export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT="$(terraform -chdir=terraform/bootstrap output -raw apply_service_account_email)"
+make plan ENV=dev PROJECT_ID=<proyecto>   # debe dar "No changes"
+```
+
+Si hay un secreto, `gcloud secrets versions access latest --secret <id> --impersonate-service-account "$GOOGLE_IMPERSONATE_SERVICE_ACCOUNT"` debe fallar con `PERMISSION_DENIED`. El flujo de secretos de dos PRs de [`envs/dev`](../envs/dev/README.md) debe seguir funcionando (crear el secreto, montarlo).
 
 ## Al terminar
 
