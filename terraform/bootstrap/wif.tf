@@ -1,10 +1,7 @@
 locals {
-  # Solo se aceptan tokens del repositorio indicado. Si hay ID numérico, también se exige:
+  # Solo se aceptan tokens del repositorio indicado, por nombre y por ID numérico:
   # el nombre de un repositorio borrado lo puede reutilizar otra persona; el ID no.
-  github_repository_condition = join(" && ", compact([
-    "assertion.repository == '${var.github_repository}'",
-    var.github_repository_id == null ? "" : "assertion.repository_id == '${var.github_repository_id}'",
-  ]))
+  github_repository_condition = "assertion.repository == '${var.github_repository}' && assertion.repository_id == '${var.github_repository_id}'"
 }
 
 resource "google_iam_workload_identity_pool" "github" {
