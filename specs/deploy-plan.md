@@ -49,7 +49,7 @@
 
 ### Assumptions
 
-- El atributo `repo_ref = repositorio@refs/heads/main` del provider de WIF acepta ejecuciones por `push` y por `workflow_dispatch` lanzado sobre `main`. `verify-apply-sa.yml` ya probó el primer caso.
+- El atributo `repo_ref = repositorio@refs/heads/main` del provider de WIF acepta ejecuciones por `push` y por `workflow_dispatch` lanzado sobre `main`. `verify-apply-sa.yml` (luego eliminado, #50) probó el primer caso.
 - `main` protegida con `enforce_admins` impide que el `push` a `main` ocurra sin PR, así que el disparo es siempre un merge revisado.
 
 ## Milestones

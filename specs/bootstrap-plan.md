@@ -36,7 +36,7 @@ Cuatro decisiones de diseño detrás de esa tabla:
 
 - **`plan` corre con `-lock=false` y sin permiso de escritura.** El backend de GCS bloquea el estado escribiendo un objeto `.tflock` en el bucket. Un `plan` con bloqueo necesitaría escribir en el bucket de estado. Como `plan` no modifica infraestructura, no se le da esa escritura.
 - **`apply` no recibe `roles/resourcemanager.projectIamAdmin`.** Con ese rol podría asignarse `roles/owner` a sí misma. Los módulos siguientes deben dar permisos sobre cada recurso (el secreto, el repositorio de Artifact Registry, el servicio de Cloud Run) y no sobre todo el proyecto.
-- **`apply` no tiene `roles/secretmanager.admin`.** Incluye `secretmanager.versions.access`, y la SA podría leer directamente el valor de todos los secretos, que el módulo `secrets` nunca lee. Un rol personalizado deja solo los permisos que Terraform usa (#45). No es una frontera dura: `secrets.setIamPolicy` y `iam.serviceAccounts.setIamPolicy` permiten que `apply` se dé acceso, aunque eso pasa por un cambio de IAM auditable.
+- **`apply` no tiene `roles/secretmanager.admin`.** Incluye `secretmanager.versions.access`, y la SA podría leer directamente el valor de todos los secretos, que el módulo `secrets` nunca lee. Un rol personalizado deja solo los permisos que Terraform usa (#45). No es una frontera dura: `secrets.setIamPolicy` y `iam.serviceAccounts.setIamPolicy` permiten que `apply` se dé acceso, aunque eso pasa por un cambio de IAM auditable. SonarQube lo marca como `terraform:S6408` (escalada de privilegios en un rol personalizado); se aceptó el 2026-10-06 en SonarQube porque el módulo `secrets` exige el permiso y el riesgo es el descrito aquí (#62).
 - **El permiso para usar `apply` se define con un atributo compuesto.** El provider de WIF mapea `repo_ref = repositorio@ref`. Un permiso de WIF solo puede filtrar por un atributo, y con este el binding de `apply` exige repositorio y rama a la vez, sin condiciones IAM adicionales.
 
 ## Dependencies
@@ -85,7 +85,7 @@ Cada una se comprueba en la tarea indicada.
 - [x] **M3**: `make bootstrap-migrate` deja el estado en el bucket con versiones recuperables (T3).
 - [x] **M4**: desde un PR de prueba se obtiene la SA `plan` y falla al usar la SA `apply`; desde `main` se obtiene `apply` (T5, T6).
   - **Hecho (2026-09-26)**: desde el PR de prueba #8 (`refs/pull/8/merge`) la SA `plan` funcionó y la SA `apply` falló con `PERMISSION_DENIED` (`iam.serviceAccounts.getAccessToken`). El PR se cerró sin mergear.
-  - **Hecho (2026-09-27)**: el workflow `verify-apply-sa` corrió sobre `main` (ejecución 36293992691) y el token obtenido era de `dockyard2sail-apply@`.
+  - **Hecho (2026-09-27)**: el workflow `verify-apply-sa` corrió sobre `main` (ejecución 36293992691) y el token obtenido era de `dockyard2sail-apply@`. El workflow se eliminó después (#50): hoy esta mitad de la prueba la cubre `deploy.yml`, que se autentica con la SA `apply` en cada merge a `main`.
   - **Ojo**: `google-github-actions/auth` sin `token_format` solo escribe el archivo de credenciales y no llama a GCP, así que no sirve para probar una denegación. La prueba usó `token_format: access_token`.
 - [x] **M5**: lockfile versionado, CHANGELOG y README actualizados, CI verde y checklist de "Antes de mergear" completo (T7, T8). Verificado el 2026-09-27: CI en verde en el PR #9 y en `main` (`c9d50be`), `make validate` y `make trivy` sin hallazgos.
 

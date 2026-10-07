@@ -67,7 +67,7 @@ make bootstrap-output
 | `apply_service_account_email` | `service_account` en el workflow que corre al hacer merge a `main` |
 | `state_bucket_name` | `bucket` del backend de cada entorno |
 
-Guarda `workload_identity_provider` y el correo de la SA como variables del repositorio (`gh variable set`), no como secrets: no son secretas, y así el repo no lleva el número de proyecto. [`verify-apply-sa.yml`](../../.github/workflows/verify-apply-sa.yml) las lee como `WIF_PROVIDER` y `APPLY_SERVICE_ACCOUNT`.
+Guarda `workload_identity_provider` y el correo de la SA como variables del repositorio (`gh variable set`), no como secrets: no son secretas. Una variable evita commitear el valor, no lo oculta: el repositorio y los logs de Actions son públicos, y el paso de autenticación imprime `workload_identity_provider` (con el número de proyecto) y `project_id`, porque las variables no se enmascaran. [`deploy.yml`](../../.github/workflows/deploy.yml) las lee como `WIF_PROVIDER` y `APPLY_SERVICE_ACCOUNT`.
 
 Un workflow que se autentica necesita `permissions: id-token: write` (en el job, no en todo el workflow) y `contents: read`. Fija la action por commit SHA, como pide `CLAUDE.md`.
 
@@ -93,6 +93,15 @@ La SA `apply` se obtiene desde `refs/heads/main`, así que quien pueda empujar d
 - **Aplicar también a administradores** (`enforce_admins: true`), o tu cuenta se salta el resto de reglas. Se decidió activarlo, no dejarlo como excepción: con el `apply` ocurriendo al hacer merge a `main`, saltarse los checks tendría más peso que en un repo de código común.
 - **Checks requeridos, con la rama al día (`strict`):** `fmt`, `validate`, `lock-check`, `license-check`, `trivy-fs` y `gitleaks`.
 - **Sin force-push ni borrado de la rama.**
+
+### Otros ajustes de GitHub fuera de Terraform
+
+Estado leído con `gh api` el 2026-10-06. Los activa el owner desde Settings; ningún workflow ni Terraform los cambia.
+
+| Ajuste | Dónde | Estado (2026-10-06) | Para qué sirve | Comprobar |
+|--------|-------|---------------------|----------------|-----------|
+| `sha_pinning_required` | Settings → Actions → General | **Pendiente de activar por el owner** (`false`) | Un PR con una Action sin pinear por commit SHA no puede ejecutarse. `CLAUDE.md` ya exige el pin; esto lo hace cumplir | `gh api repos/<owner>/<repo>/actions/permissions --jq .sha_pinning_required` |
+| `dependabot_security_updates` | Settings → Code security | **Activo** (`enabled`) | Un aviso de seguridad sobre el provider de Google o una Action abre un PR sin esperar al ciclo semanal de `dependabot.yml` | `gh api repos/<owner>/<repo> --jq .security_and_analysis.dependabot_security_updates.status` |
 
 ## Cosas que conviene saber
 
